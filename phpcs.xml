@@ -56,6 +56,10 @@
 	<rule ref="WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedConstantFound">
 		<exclude-pattern>/tests/*</exclude-pattern>
 	</rule>
+	<!-- Tests set WordPress's own globals ($wp_rest_server, $wp_rest_auth_cookie), which cannot carry our prefix. -->
+	<rule ref="WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedVariableFound">
+		<exclude-pattern>/tests/*</exclude-pattern>
+	</rule>
 	<rule ref="WordPress.WP.AlternativeFunctions">
 		<exclude-pattern>/tests/*</exclude-pattern>
 	</rule>

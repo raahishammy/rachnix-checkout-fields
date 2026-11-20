@@ -40,6 +40,36 @@ abstract class IntegrationTestCase extends \PHPUnit\Framework\TestCase {
 	}
 
 	/**
+	 * Creates a throwaway user with a role. Delete it with delete_test_user().
+	 *
+	 * @param string $role Role slug, e.g. "customer" or "shop_manager".
+	 */
+	protected static function create_test_user( string $role ): int {
+		$id = wp_insert_user(
+			array(
+				'user_login' => 'rxcftest_' . $role . '_' . wp_generate_password( 8, false ),
+				'user_pass'  => wp_generate_password( 24 ),
+				'user_email' => 'rxcftest_' . wp_generate_password( 8, false ) . '@example.invalid',
+				'role'       => $role,
+			)
+		);
+		if ( is_wp_error( $id ) ) {
+			throw new \RuntimeException( 'Could not create test user: ' . esc_html( $id->get_error_message() ) );
+		}
+		return $id;
+	}
+
+	protected static function delete_test_user( int $user_id ): void {
+		require_once ABSPATH . 'wp-admin/includes/user.php';
+		if ( is_multisite() ) {
+			require_once ABSPATH . 'wp-admin/includes/ms.php';
+			wpmu_delete_user( $user_id );
+		} else {
+			wp_delete_user( $user_id );
+		}
+	}
+
+	/**
 	 * Removes leftovers of an earlier, interrupted run.
 	 */
 	protected static function reset_test_schema(): void {

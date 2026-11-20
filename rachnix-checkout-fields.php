@@ -65,6 +65,14 @@ spl_autoload_register(
 	}
 );
 
+// Stops the daily audit-log purge (Core\AuditLogPurger::HOOK). Data is kept; uninstall decides that.
+register_deactivation_hook(
+	__FILE__,
+	static function (): void {
+		wp_clear_scheduled_hook( 'rxcf_purge_audit_log' );
+	}
+);
+
 add_action(
 	'plugins_loaded',
 	static function (): void {

@@ -22,7 +22,15 @@ use Rachnix\CheckoutFields\Exception\DatabaseError;
 use Rachnix\CheckoutFields\FieldTypes\FieldTypeRegistry;
 use Rachnix\CheckoutFields\Repository\FieldCache;
 use Rachnix\CheckoutFields\Repository\FieldRepository;
+use Rachnix\CheckoutFields\Core\AuditLogPurger;
+use Rachnix\CheckoutFields\Repository\AuditLogRepository;
+use Rachnix\CheckoutFields\Rest\FieldsController;
+use Rachnix\CheckoutFields\Rest\RestRoutes;
+use Rachnix\CheckoutFields\Rest\SectionsController;
+use Rachnix\CheckoutFields\Security\Capabilities;
 use Rachnix\CheckoutFields\Security\Logger;
+use Rachnix\CheckoutFields\Security\RequestContext;
+use Rachnix\CheckoutFields\Service\FieldService;
 use Rachnix\CheckoutFields\Service\PatternLibrary;
 use Rachnix\CheckoutFields\Service\Sanitizer;
 use Rachnix\CheckoutFields\Service\ValidationService;
@@ -123,6 +131,43 @@ final class Plugin {
 				$c->get( Logger::class )
 			)
 		);
+
+		$c->set( RequestContext::class, static fn() => new RequestContext() );
+		$c->set(
+			AuditLogRepository::class,
+			static fn( Container $c ) => new AuditLogRepository(
+				self::wpdb(),
+				$c->get( TableNames::class ),
+				$c->get( RequestContext::class ),
+				$c->get( Logger::class )
+			)
+		);
+		$c->set(
+			FieldService::class,
+			static fn( Container $c ) => new FieldService(
+				$c->get( FieldRepositoryInterface::class ),
+				$c->get( AuditLogRepository::class ),
+				$c->get( FieldTypeRegistry::class ),
+				$c->get( PatternLibrary::class )
+			)
+		);
+
+		$c->set( Capabilities::class, static fn() => new Capabilities() );
+		$c->set( AuditLogPurger::class, static fn( Container $c ) => new AuditLogPurger( $c->get( AuditLogRepository::class ) ) );
+		$c->set(
+			RestRoutes::class,
+			static fn( Container $c ) => new RestRoutes(
+				static fn(): array => array(
+					new FieldsController(
+						$c->get( FieldService::class ),
+						$c->get( FieldTypeRegistry::class ),
+						$c->get( PatternLibrary::class ),
+						$c->get( Logger::class )
+					),
+					new SectionsController( $c->get( FieldService::class ), $c->get( Logger::class ) ),
+				)
+			)
+		);
 	}
 
 	/**
@@ -132,7 +177,11 @@ final class Plugin {
 	 * @return list<Hookable>
 	 */
 	private function hookables(): array {
-		return array();
+		return array(
+			$this->container->get( Capabilities::class ),
+			$this->container->get( AuditLogPurger::class ),
+			$this->container->get( RestRoutes::class ),
+		);
 	}
 
 	/**

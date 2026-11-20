@@ -77,6 +77,51 @@ final readonly class Field {
 	}
 
 	/**
+	 * The definition as plain data, for the REST API, the audit log and export.
+	 * No database id, user id or timestamps.
+	 *
+	 * @return array{uuid: string, section: string, key: string, type: string, label: string, placeholder: string, settings: array<string, mixed>, priority: int, enabled: bool, is_core: bool}
+	 */
+	public function to_array(): array {
+		return array(
+			'uuid'        => $this->uuid,
+			'section'     => $this->section->value,
+			'key'         => $this->key,
+			'type'        => $this->type,
+			'label'       => $this->label,
+			'placeholder' => $this->placeholder,
+			'settings'    => $this->settings->to_array(),
+			'priority'    => $this->priority,
+			'enabled'     => $this->enabled,
+			'is_core'     => $this->is_core,
+		);
+	}
+
+	/**
+	 * Copy with a new sort position.
+	 *
+	 * @param int $priority Sort order.
+	 */
+	public function with_priority( int $priority ): self {
+		return new self(
+			uuid: $this->uuid,
+			section: $this->section,
+			key: $this->key,
+			type: $this->type,
+			label: $this->label,
+			placeholder: $this->placeholder,
+			settings: $this->settings,
+			priority: $priority,
+			enabled: $this->enabled,
+			is_core: $this->is_core,
+			created_by: $this->created_by,
+			id: $this->id,
+			created_at: $this->created_at,
+			updated_at: $this->updated_at,
+		);
+	}
+
+	/**
 	 * Copy of this field as stored in the database.
 	 *
 	 * @param int               $id         Database id.
