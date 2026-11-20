@@ -43,11 +43,14 @@ final class TextareaField extends AbstractFieldType {
 	}
 
 	/**
-	 * Like the single-line sanitiser, but keeps line breaks.
+	 * Like the single-line sanitiser, but keeps line breaks. Browsers submit textarea
+	 * line breaks as \r\n; they are stored as \n, so every value looks the same in
+	 * emails, the order screen and exports, whatever it came from.
 	 *
 	 * @param mixed $raw Submitted value.
 	 */
 	public function sanitize( mixed $raw ): string {
-		return sanitize_textarea_field( $this->scalar_to_string( $raw ) );
+		$text = str_replace( array( "\r\n", "\r" ), "\n", $this->scalar_to_string( $raw ) );
+		return sanitize_textarea_field( $text );
 	}
 }

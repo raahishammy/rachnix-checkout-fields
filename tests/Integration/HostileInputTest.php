@@ -143,6 +143,11 @@ final class HostileInputTest extends IntegrationTestCase {
 		$this->assertSame( "Leave at door\nRing twice", $this->sanitizer->sanitize( $this->field( 'textarea' ), "Leave at <b>door</b>\nRing twice<script>x</script>" ) );
 	}
 
+	public function test_textarea_stores_browser_line_breaks_as_newlines(): void {
+		// Browsers submit textarea line breaks as \r\n (HTML spec); old Macs used \r.
+		$this->assertSame( "One\nTwo\nThree", $this->sanitizer->sanitize( $this->field( 'textarea' ), "One\r\nTwo\rThree" ) );
+	}
+
 	public function test_hostile_choice_values_are_rejected(): void {
 		$field = $this->field( 'select' );
 
