@@ -42,6 +42,7 @@
 		"lint:fix": "phpcbf",
 		"analyse": "phpstan analyse --memory-limit=1G",
 		"test": "phpunit",
+		"test:integration": "phpunit -c phpunit-integration.xml.dist",
 		"check": [
 			"@lint",
 			"@analyse",

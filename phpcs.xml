@@ -41,6 +41,17 @@
 		</properties>
 	</rule>
 
+	<!--
+		Repositories and migrations are the only code allowed to query our own tables directly.
+		Every query there is prepared; reads are cached by FieldCache.
+	-->
+	<rule ref="WordPress.DB.DirectDatabaseQuery">
+		<exclude-pattern>/src/Repository/*</exclude-pattern>
+		<exclude-pattern>/src/Core/Migrations/*</exclude-pattern>
+		<exclude-pattern>/tests/Integration/*</exclude-pattern>
+		<exclude-pattern>/tests/smoke/*</exclude-pattern>
+	</rule>
+
 	<!-- Tests run outside WordPress: they define ABSPATH and use plain PHP file functions. -->
 	<rule ref="WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedConstantFound">
 		<exclude-pattern>/tests/*</exclude-pattern>

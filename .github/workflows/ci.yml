@@ -65,6 +65,13 @@ jobs:
           - { php: '8.5', wp: 'latest', wc: 'latest-stable' }
     steps:
       - uses: actions/checkout@v4
+      # vendor/ is mounted into the wp-env containers, where the integration tests run.
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ matrix.php }}
+          tools: composer:v2
+          coverage: none
+      - run: composer install --no-progress --prefer-dist
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
@@ -87,6 +94,9 @@ jobs:
         run: |
           npx @wordpress/env@10 run cli wp option update woocommerce_custom_orders_table_enabled no
           npx @wordpress/env@10 run cli wp eval-file wp-content/plugins/rachnix-checkout-fields/tests/smoke/activation.php
+      - name: Integration tests (migrations up/down, repository)
+        run: |
+          npx @wordpress/env@10 run cli --env-cwd=wp-content/plugins/rachnix-checkout-fields php vendor/bin/phpunit -c phpunit-integration.xml.dist
       - name: Fail on PHP errors from this plugin
         run: |
           npx @wordpress/env@10 run cli bash -c 'test ! -f wp-content/debug.log || ! grep -i "rachnix-checkout-fields" wp-content/debug.log'

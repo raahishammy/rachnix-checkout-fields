@@ -26,9 +26,21 @@ foreach ( array( 'custom_order_tables', 'cart_checkout_blocks' ) as $rxcf_featur
 	}
 }
 
+if ( (int) get_option( 'rxcf_db_version', 0 ) < 1 ) {
+	$rxcf_failures[] = 'Database schema was not migrated (rxcf_db_version < 1).';
+}
+
+global $wpdb;
+foreach ( array( 'fields', 'sections', 'audit_log' ) as $rxcf_table ) {
+	$rxcf_name = $wpdb->prefix . 'rxcf_' . $rxcf_table;
+	if ( $rxcf_name !== $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $wpdb->esc_like( $rxcf_name ) ) ) ) {
+		$rxcf_failures[] = "Table {$rxcf_name} is missing.";
+	}
+}
+
 if ( array() !== $rxcf_failures ) {
 	fwrite( STDERR, implode( PHP_EOL, $rxcf_failures ) . PHP_EOL );
 	exit( 1 );
 }
 
-echo 'Smoke check passed: plugin booted and declared HPOS + blocks compatibility.' . PHP_EOL;
+echo 'Smoke check passed: plugin booted, migrated its tables and declared HPOS + blocks compatibility.' . PHP_EOL;
