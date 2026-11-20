@@ -3,10 +3,11 @@
  * Smoke check run inside a real WordPress: `wp eval-file tests/smoke/activation.php`.
  * Exits non-zero if the plugin did not boot or did not declare WooCommerce compatibility.
  *
+ * No declare(strict_types=1) here, unlike every other file: `wp eval-file` runs the
+ * file through eval(), where a declare statement is a fatal error.
+ *
  * @package Rachnix\CheckoutFields
  */
-
-declare(strict_types=1);
 
 use Automattic\WooCommerce\Utilities\FeaturesUtil;
 
