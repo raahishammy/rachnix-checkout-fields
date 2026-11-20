@@ -1,0 +1,14 @@
+parameters:
+	level: 8
+	phpVersion:
+		min: 80200
+		max: 80599
+	paths:
+		- rachnix-checkout-fields.php
+		- src
+	bootstrapFiles:
+		- vendor/php-stubs/woocommerce-stubs/woocommerce-stubs.php
+	treatPhpDocTypesAsCertain: false
+	# The stubs give WC_VERSION a placeholder value; at runtime it is the installed version.
+	dynamicConstantNames:
+		- WC_VERSION

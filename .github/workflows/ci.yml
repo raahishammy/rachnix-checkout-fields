@@ -1,0 +1,92 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  static:
+    name: PHPCS + PHPStan
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.2'
+          tools: composer:v2
+          coverage: none
+      - run: composer install --no-progress --prefer-dist
+      - run: composer audit
+      - run: composer lint
+      - run: composer analyse
+
+  unit:
+    name: PHPUnit (PHP ${{ matrix.php }})
+    runs-on: ubuntu-latest
+    continue-on-error: ${{ matrix.experimental }}
+    strategy:
+      fail-fast: false
+      matrix:
+        php: ['8.2', '8.3', '8.4', '8.5']
+        experimental: [false]
+        include:
+          - php: '8.6'
+            experimental: true
+    steps:
+      - uses: actions/checkout@v4
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ matrix.php }}
+          tools: composer:v2
+          coverage: none
+      - run: composer install --no-progress --prefer-dist
+      - run: composer test
+
+  activation:
+    name: Activate (PHP ${{ matrix.php }}, WP ${{ matrix.wp }}, WC ${{ matrix.wc }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # Oldest supported row. WooCommerce 9.9 needs a newer WordPress than our
+          # 6.5 header minimum, so this row uses the oldest WordPress that WC 9.9 accepts.
+          - { php: '8.2', wp: '6.7', wc: '9.9.0' }
+          - { php: '8.3', wp: 'latest', wc: 'latest-stable' }
+          - { php: '8.4', wp: 'latest', wc: 'latest-stable' }
+          - { php: '8.5', wp: 'latest', wc: 'latest-stable' }
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Configure wp-env for this row
+        run: |
+          if [ "${{ matrix.wp }}" = "latest" ]; then CORE=null; else CORE="\"WordPress/WordPress#${{ matrix.wp }}\""; fi
+          cat > .wp-env.override.json <<EOF
+          {
+            "core": ${CORE},
+            "phpVersion": "${{ matrix.php }}",
+            "plugins": ["https://downloads.wordpress.org/plugin/woocommerce.${{ matrix.wc }}.zip", "."]
+          }
+          EOF
+      - run: npx --yes @wordpress/env@10 start
+      - name: Activate on single site
+        run: |
+          npx @wordpress/env@10 run cli wp plugin activate woocommerce rachnix-checkout-fields
+          npx @wordpress/env@10 run cli wp eval-file wp-content/plugins/rachnix-checkout-fields/tests/smoke/activation.php
+      - name: Activate with HPOS off (legacy posts storage)
+        run: |
+          npx @wordpress/env@10 run cli wp option update woocommerce_custom_orders_table_enabled no
+          npx @wordpress/env@10 run cli wp eval-file wp-content/plugins/rachnix-checkout-fields/tests/smoke/activation.php
+      - name: Fail on PHP errors from this plugin
+        run: |
+          npx @wordpress/env@10 run cli bash -c 'test ! -f wp-content/debug.log || ! grep -i "rachnix-checkout-fields" wp-content/debug.log'

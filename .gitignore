@@ -1,0 +1,50 @@
+# Private planning docs
+/.specs/
+
+# Dependencies (installed with composer install / npm install)
+/vendor/
+/node_modules/
+
+# Build output
+/assets/build/*.map
+/build/
+/dist/
+*.zip
+
+# Tool caches and reports
+/.phpunit.cache/
+/.phpunit.result.cache
+/phpcs-cache.json
+/.phpcs-cache
+/.phpstan-cache/
+/coverage/
+/test-results/
+/playwright-report/
+/blob-report/
+/artifacts/
+
+# Local environment overrides
+/.wp-env.override.json
+/phpunit.xml
+/phpcs.xml.local
+/phpstan.neon.local
+.env
+.env.*
+!.env.example
+auth.json
+
+# Logs
+*.log
+npm-debug.log*
+yarn-error.log*
+
+# Editors and OS
+/.idea/
+/.vscode/
+/.claude/
+*.code-workspace
+*.swp
+*~
+.DS_Store
+Thumbs.db
+desktop.ini
