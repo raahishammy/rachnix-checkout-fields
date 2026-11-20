@@ -9,6 +9,9 @@ declare(strict_types=1);
 
 namespace Rachnix\CheckoutFields\Contracts;
 
+use Rachnix\CheckoutFields\Domain\Field;
+use Rachnix\CheckoutFields\Domain\ValidationError;
+use Rachnix\CheckoutFields\Domain\ValidationRule;
 use Rachnix\CheckoutFields\Domain\ValidationRuleType;
 
 defined( 'ABSPATH' ) || exit;
@@ -60,4 +63,34 @@ interface FieldTypeInterface {
 	 * @return list<ValidationRuleType>
 	 */
 	public function allowed_rules(): array;
+
+	/**
+	 * Rules every value of this type must pass, whatever the store owner configured.
+	 *
+	 * @return list<ValidationRule>
+	 */
+	public function built_in_rules(): array;
+
+	/**
+	 * Longest accepted value, in characters. Checked before any other rule, so
+	 * no regex ever runs on an oversized value.
+	 */
+	public function max_length(): int;
+
+	/**
+	 * Turns raw submitted input into the clean string that is validated and stored.
+	 * Input must already be unslashed. Never throws; non-scalar input becomes ''.
+	 *
+	 * @param mixed $raw Submitted value.
+	 */
+	public function sanitize( mixed $raw ): string;
+
+	/**
+	 * Format errors of a sanitised, non-empty value (e.g. "not a number", "not one of the options").
+	 *
+	 * @param string $value Sanitised value.
+	 * @param Field  $field Field definition (for options and the error key).
+	 * @return list<ValidationError>
+	 */
+	public function value_errors( string $value, Field $field ): array;
 }

@@ -9,6 +9,7 @@ declare(strict_types=1);
 
 namespace Rachnix\CheckoutFields\FieldTypes;
 
+use Rachnix\CheckoutFields\Domain\ValidationRule;
 use Rachnix\CheckoutFields\Domain\ValidationRuleType;
 
 defined( 'ABSPATH' ) || exit;
@@ -36,5 +37,9 @@ final class PhoneField extends AbstractFieldType {
 
 	public function allowed_rules(): array {
 		return array( ValidationRuleType::Length, ValidationRuleType::Pattern );
+	}
+
+	public function built_in_rules(): array {
+		return array( new ValidationRule( ValidationRuleType::Phone ) );
 	}
 }

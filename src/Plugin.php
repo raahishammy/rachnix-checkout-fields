@@ -23,6 +23,9 @@ use Rachnix\CheckoutFields\FieldTypes\FieldTypeRegistry;
 use Rachnix\CheckoutFields\Repository\FieldCache;
 use Rachnix\CheckoutFields\Repository\FieldRepository;
 use Rachnix\CheckoutFields\Security\Logger;
+use Rachnix\CheckoutFields\Service\PatternLibrary;
+use Rachnix\CheckoutFields\Service\Sanitizer;
+use Rachnix\CheckoutFields\Service\ValidationService;
 
 defined( 'ABSPATH' ) || exit;
 
@@ -98,6 +101,17 @@ final class Plugin {
 
 				return $registry;
 			}
+		);
+
+		$c->set( PatternLibrary::class, static fn() => new PatternLibrary() );
+		$c->set( Sanitizer::class, static fn( Container $c ) => new Sanitizer( $c->get( FieldTypeRegistry::class ) ) );
+		$c->set(
+			ValidationService::class,
+			static fn( Container $c ) => new ValidationService(
+				$c->get( FieldTypeRegistry::class ),
+				$c->get( PatternLibrary::class ),
+				$c->get( Logger::class )
+			)
 		);
 
 		$c->set(

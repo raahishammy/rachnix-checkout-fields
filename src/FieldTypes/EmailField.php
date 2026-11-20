@@ -9,6 +9,7 @@ declare(strict_types=1);
 
 namespace Rachnix\CheckoutFields\FieldTypes;
 
+use Rachnix\CheckoutFields\Domain\ValidationRule;
 use Rachnix\CheckoutFields\Domain\ValidationRuleType;
 
 defined( 'ABSPATH' ) || exit;
@@ -36,5 +37,16 @@ final class EmailField extends AbstractFieldType {
 
 	public function allowed_rules(): array {
 		return array( ValidationRuleType::Length );
+	}
+
+	public function built_in_rules(): array {
+		return array( new ValidationRule( ValidationRuleType::Email ) );
+	}
+
+	/**
+	 * The longest address RFC 5321 allows.
+	 */
+	public function max_length(): int {
+		return 254;
 	}
 }

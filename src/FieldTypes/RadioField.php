@@ -9,6 +9,8 @@ declare(strict_types=1);
 
 namespace Rachnix\CheckoutFields\FieldTypes;
 
+use Rachnix\CheckoutFields\Domain\Field;
+
 defined( 'ABSPATH' ) || exit;
 
 /**
@@ -38,5 +40,13 @@ final class RadioField extends AbstractFieldType {
 
 	public function supports_placeholder(): bool {
 		return false;
+	}
+
+	/**
+	 * @param string $value Sanitised value.
+	 * @param Field  $field Field definition.
+	 */
+	public function value_errors( string $value, Field $field ): array {
+		return $this->choice_errors( $value, $field );
 	}
 }

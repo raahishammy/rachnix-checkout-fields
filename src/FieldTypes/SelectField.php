@@ -9,6 +9,8 @@ declare(strict_types=1);
 
 namespace Rachnix\CheckoutFields\FieldTypes;
 
+use Rachnix\CheckoutFields\Domain\Field;
+
 defined( 'ABSPATH' ) || exit;
 
 /**
@@ -34,5 +36,13 @@ final class SelectField extends AbstractFieldType {
 
 	public function supports_options(): bool {
 		return true;
+	}
+
+	/**
+	 * @param string $value Sanitised value.
+	 * @param Field  $field Field definition.
+	 */
+	public function value_errors( string $value, Field $field ): array {
+		return $this->choice_errors( $value, $field );
 	}
 }

@@ -37,4 +37,17 @@ final class TextareaField extends AbstractFieldType {
 	public function allowed_rules(): array {
 		return array( ValidationRuleType::Length, ValidationRuleType::Pattern );
 	}
+
+	public function max_length(): int {
+		return 5000;
+	}
+
+	/**
+	 * Like the single-line sanitiser, but keeps line breaks.
+	 *
+	 * @param mixed $raw Submitted value.
+	 */
+	public function sanitize( mixed $raw ): string {
+		return sanitize_textarea_field( $this->scalar_to_string( $raw ) );
+	}
 }

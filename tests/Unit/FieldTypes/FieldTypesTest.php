@@ -75,6 +75,41 @@ final class FieldTypesTest extends TestCase {
 		$this->assertMatchesRegularExpression( '/^[a-z][a-z-]*$/', $type->icon(), 'Dashicons name without prefix.' );
 	}
 
+	public function test_length_caps_and_built_in_rules(): void {
+		$expected = array(
+			'text'     => array( 255, array() ),
+			'textarea' => array( 5000, array() ),
+			'email'    => array( 254, array( Rule::Email ) ),
+			'phone'    => array( 255, array( Rule::Phone ) ),
+			'number'   => array( 255, array() ),
+			'password' => array( 255, array() ),
+			'select'   => array( 255, array() ),
+			'radio'    => array( 255, array() ),
+			'checkbox' => array( 255, array() ),
+			'date'     => array( 10, array() ),
+			'hidden'   => array( 255, array() ),
+		);
+
+		foreach ( FieldTypes\FieldTypeRegistry::FREE_TYPES as $class_name ) {
+			$type            = new $class_name();
+			[ $max, $rules ] = $expected[ $type->slug() ];
+
+			$this->assertSame( $max, $type->max_length(), $type->slug() );
+			$this->assertSame( $rules, array_map( static fn( $r ) => $r->type, $type->built_in_rules() ), $type->slug() );
+		}
+	}
+
+	public function test_checkbox_sanitises_to_one_or_empty(): void {
+		$checkbox = new FieldTypes\CheckboxField();
+
+		foreach ( array( '1', 1, true, 'on', 'yes', 'true' ) as $ticked ) {
+			$this->assertSame( '1', $checkbox->sanitize( $ticked ) );
+		}
+		foreach ( array( '', '0', 0, false, null, 'no', array( '1' ), '<script>', ' 1', 'ON' ) as $not_ticked ) {
+			$this->assertSame( '', $checkbox->sanitize( $not_ticked ) );
+		}
+	}
+
 	public function test_every_free_type_is_covered_here(): void {
 		$tested = array_map( static fn( array $row ): string => $row[0], iterator_to_array( self::free_types(), false ) );
 
