@@ -14,6 +14,11 @@ defined( 'ABSPATH' ) || exit;
 
 $rxcf_failures = array();
 
+if ( ! defined( 'WC_VERSION' ) ) {
+	fwrite( STDERR, 'WooCommerce is not active, so nothing else can be checked.' . PHP_EOL );
+	exit( 1 );
+}
+
 if ( 1 !== did_action( 'rxcf_loaded' ) ) {
 	$rxcf_failures[] = 'rxcf_loaded did not fire exactly once (requirements failed or boot did not run).';
 }

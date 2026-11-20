@@ -75,6 +75,10 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
+      # Plugins are mapped (not listed under "plugins") so their folders are exactly
+      # "woocommerce" and "rachnix-checkout-fields", and nothing is activated before the
+      # step below activates WooCommerce first. Our "Requires Plugins: woocommerce"
+      # header only resolves when WooCommerce lives in a folder named "woocommerce".
       - name: Configure wp-env for this row
         run: |
           if [ "${{ matrix.wp }}" = "latest" ]; then CORE=null; else CORE="\"WordPress/WordPress#${{ matrix.wp }}\""; fi
@@ -82,14 +86,22 @@ jobs:
           {
             "core": ${CORE},
             "phpVersion": "${{ matrix.php }}",
-            "plugins": ["https://downloads.wordpress.org/plugin/woocommerce.${{ matrix.wc }}.zip", "."]
+            "plugins": [],
+            "mappings": {
+              "wp-content/plugins/woocommerce": "https://downloads.wordpress.org/plugin/woocommerce.${{ matrix.wc }}.zip",
+              "wp-content/plugins/rachnix-checkout-fields": "."
+            }
           }
           EOF
       - run: npx --yes @wordpress/env@10 start
       - name: Activate on single site
         run: |
-          npx @wordpress/env@10 run cli wp plugin activate woocommerce rachnix-checkout-fields
+          npx @wordpress/env@10 run cli wp plugin activate woocommerce
+          npx @wordpress/env@10 run cli wp plugin activate rachnix-checkout-fields
           npx @wordpress/env@10 run cli wp eval-file wp-content/plugins/rachnix-checkout-fields/tests/smoke/activation.php
+      - name: Show installed plugins (on failure)
+        if: failure()
+        run: npx @wordpress/env@10 run cli wp plugin list
       - name: Activate with HPOS off (legacy posts storage)
         run: |
           npx @wordpress/env@10 run cli wp option update woocommerce_custom_orders_table_enabled no
