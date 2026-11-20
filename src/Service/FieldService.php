@@ -9,7 +9,9 @@ declare(strict_types=1);
 
 namespace Rachnix\CheckoutFields\Service;
 
+use Rachnix\CheckoutFields\Contracts\CoreFieldCatalogInterface;
 use Rachnix\CheckoutFields\Contracts\FieldRepositoryInterface;
+use Rachnix\CheckoutFields\Domain\CoreFieldDefault;
 use Rachnix\CheckoutFields\Contracts\FieldTypeInterface;
 use Rachnix\CheckoutFields\Domain\AuditAction;
 use Rachnix\CheckoutFields\Domain\DisplayFlags;
@@ -88,18 +90,88 @@ final class FieldService {
 		'action',
 	);
 
+	/** Type slug stored for WooCommerce core field overrides. Never registered as a field type. */
+	public const CORE_TYPE = 'core';
+
+	/** Core fields the checkout cannot work without: they cannot be hidden. */
+	public const NOT_HIDEABLE = array( 'billing_email', 'billing_country', 'shipping_country' );
+
+	/** Core fields that must stay required (order emails and guest checkout need an address). */
+	public const ALWAYS_REQUIRED = array( 'billing_email' );
+
 	/**
-	 * @param FieldRepositoryInterface $fields   Field storage.
-	 * @param AuditLogRepository       $audit    Audit log.
-	 * @param FieldTypeRegistry        $types    Field types.
-	 * @param PatternLibrary           $patterns Curated patterns.
+	 * @param FieldRepositoryInterface  $fields   Field storage.
+	 * @param AuditLogRepository        $audit    Audit log.
+	 * @param FieldTypeRegistry         $types    Field types.
+	 * @param PatternLibrary            $patterns Curated patterns.
+	 * @param CoreFieldCatalogInterface $core     WooCommerce's default fields.
 	 */
 	public function __construct(
 		private readonly FieldRepositoryInterface $fields,
 		private readonly AuditLogRepository $audit,
 		private readonly FieldTypeRegistry $types,
 		private readonly PatternLibrary $patterns,
+		private readonly CoreFieldCatalogInterface $core,
 	) {}
+
+	/**
+	 * WooCommerce's default fields, for the admin.
+	 *
+	 * @return list<CoreFieldDefault>
+	 */
+	public function core_defaults(): array {
+		return $this->core->all();
+	}
+
+	/**
+	 * Edits, hides or moves a WooCommerce core field. The first change creates an
+	 * override that starts from WooCommerce's defaults; later changes update it.
+	 * Deleting the override (DELETE /fields/{uuid}) restores WooCommerce's field.
+	 *
+	 * @param SectionKey           $section Section.
+	 * @param string               $key     WooCommerce field key.
+	 * @param array<string, mixed> $changes label, placeholder, priority, enabled, settings.required/width/css_classes.
+	 * @param int                  $user_id Acting user.
+	 * @throws InvalidFieldInput When the key is not a core field of the section, or a change is not allowed.
+	 * @throws DatabaseError     When it cannot be stored.
+	 */
+	public function customize_core( SectionKey $section, string $key, array $changes, int $user_id ): Field {
+		$default = $this->core->find( $section, $key );
+		if ( null === $default ) {
+			throw InvalidFieldInput::with( array( 'key' => __( 'This is not a WooCommerce field of this section.', 'rachnix-checkout-fields' ) ) ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- returned as REST JSON, never printed.
+		}
+
+		$existing = $this->fields->all()->find_by_key( $section, $key );
+		if ( null !== $existing && ! $existing->is_core ) {
+			// Possible when another plugin adds an address field after a custom field took its key.
+			throw InvalidFieldInput::with( array( 'key' => __( 'A custom field already uses this key.', 'rachnix-checkout-fields' ) ) ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- returned as REST JSON, never printed.
+		}
+		if ( null !== $existing ) {
+			return $this->update( $existing->uuid, $changes, $user_id );
+		}
+
+		$data = array_merge(
+			array(
+				'label'       => '',
+				'placeholder' => '',
+				'priority'    => $default->priority,
+				'enabled'     => true,
+			),
+			$changes
+		);
+
+		$data['settings'] = array_merge(
+			array(
+				'required' => $default->required,
+				'width'    => $default->width->value,
+			),
+			is_array( $changes['settings'] ?? null ) ? $changes['settings'] : array()
+		);
+
+		$saved = $this->fields->save( $this->build_core( $data, null, $section, $key, $user_id ) );
+		$this->audit->record( AuditAction::Create, 'field', $saved->uuid, null, $saved->to_array(), $user_id );
+		return $saved;
+	}
 
 	/**
 	 * @param SectionKey|null $section Only this section; null for all.
@@ -236,6 +308,11 @@ final class FieldService {
 	 * @throws InvalidFieldInput When the definition is not acceptable.
 	 */
 	private function build( array $data, ?Field $existing, int $user_id ): Field {
+		if ( null !== $existing && $existing->is_core ) {
+			// Section, key and type of a core override never change.
+			return $this->build_core( $data, $existing, $existing->section, $existing->key, $user_id );
+		}
+
 		$errors = array();
 
 		$section = $this->parse_section( $data['section'] ?? null, $errors );
@@ -247,7 +324,7 @@ final class FieldService {
 		}
 
 		$key = self::string( $data['key'] ?? '' );
-		$this->check_key( $key, $section, $existing, $errors );
+		$this->check_key( $key, $existing, $errors );
 
 		$label       = $this->text( $data['label'] ?? '', 'label', $errors );
 		$placeholder = $this->text( $data['placeholder'] ?? '', 'placeholder', $errors );
@@ -293,6 +370,63 @@ final class FieldService {
 	}
 
 	/**
+	 * A core override may change only label, placeholder, priority, enabled, and the
+	 * required, width and CSS class settings. An empty label or placeholder keeps
+	 * WooCommerce's own (translated) text.
+	 *
+	 * @param array<string, mixed> $data     Merged definition.
+	 * @param Field|null           $existing Current override when updating.
+	 * @param SectionKey           $section  Section.
+	 * @param string               $key      WooCommerce field key.
+	 * @param int                  $user_id  Acting user.
+	 * @throws InvalidFieldInput When a change is not allowed.
+	 */
+	private function build_core( array $data, ?Field $existing, SectionKey $section, string $key, int $user_id ): Field {
+		$errors      = array();
+		$label       = $this->text( $data['label'] ?? '', 'label', $errors );
+		$placeholder = $this->text( $data['placeholder'] ?? '', 'placeholder', $errors );
+		$input       = is_array( $data['settings'] ?? null ) ? $data['settings'] : array();
+
+		$required = true === ( $input['required'] ?? false );
+		if ( ! $required && in_array( $key, self::ALWAYS_REQUIRED, true ) ) {
+			$errors['settings.required'] = __( 'WooCommerce needs this field to be filled in.', 'rachnix-checkout-fields' );
+		}
+
+		$enabled = is_bool( $data['enabled'] ?? null ) ? $data['enabled'] : ( $existing->enabled ?? true );
+		if ( ! $enabled && in_array( $key, self::NOT_HIDEABLE, true ) ) {
+			$errors['enabled'] = __( 'The checkout cannot work without this field, so it cannot be hidden.', 'rachnix-checkout-fields' );
+		}
+
+		$width = Width::tryFrom( self::string( $input['width'] ?? Width::Full->value ) );
+		if ( null === $width ) {
+			$errors['settings.width'] = __( 'Width must be full or half.', 'rachnix-checkout-fields' );
+		}
+
+		$css      = $this->build_css_classes( $input['css_classes'] ?? array(), $errors );
+		$priority = is_int( $data['priority'] ?? null ) ? $data['priority'] : ( $existing->priority ?? 10 );
+
+		if ( array() !== $errors ) {
+			throw InvalidFieldInput::with( $errors ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- returned as REST JSON, never printed.
+		}
+
+		return new Field(
+			uuid: $existing->uuid ?? wp_generate_uuid4(),
+			section: $section,
+			key: $key,
+			type: self::CORE_TYPE,
+			label: $label,
+			placeholder: $placeholder,
+			settings: new FieldSettings( required: $required, width: $width ?? Width::Full, css_classes: $css ),
+			priority: $priority,
+			enabled: $enabled,
+			is_core: true,
+			created_by: $existing->created_by ?? $user_id,
+			id: $existing?->id,
+			created_at: $existing?->created_at,
+		);
+	}
+
+	/**
 	 * @param mixed                 $value  Submitted section.
 	 * @param array<string, string> $errors Collected errors.
 	 */
@@ -321,11 +455,10 @@ final class FieldService {
 
 	/**
 	 * @param string                $key      Field key.
-	 * @param SectionKey|null       $section  Section, when valid.
 	 * @param Field|null            $existing Current field when updating.
 	 * @param array<string, string> $errors   Collected errors.
 	 */
-	private function check_key( string $key, ?SectionKey $section, ?Field $existing, array &$errors ): void {
+	private function check_key( string $key, ?Field $existing, array &$errors ): void {
 		if ( 1 !== preg_match( Patterns::FIELD_KEY, $key ) ) {
 			$errors['key'] = __( 'Use 2 to 64 lowercase letters, digits or underscores, starting with a letter. Example: gift_message', 'rachnix-checkout-fields' );
 			return;
@@ -335,10 +468,11 @@ final class FieldService {
 			$errors['key'] = __( 'This key is used by WooCommerce. Choose another one.', 'rachnix-checkout-fields' );
 			return;
 		}
-		if ( null !== $section ) {
-			$same = $this->fields->all()->find_by_key( $section, $key );
-			if ( null !== $same && $same->uuid !== $existing?->uuid ) {
-				$errors['key'] = __( 'Another field in this section already uses this key.', 'rachnix-checkout-fields' );
+		// Unique across all sections: values are saved on the order as _rxcf_{key}.
+		foreach ( $this->fields->all() as $other ) {
+			if ( $other->key === $key && $other->uuid !== $existing?->uuid ) {
+				$errors['key'] = __( 'Another field already uses this key.', 'rachnix-checkout-fields' );
+				return;
 			}
 		}
 	}

@@ -7,7 +7,9 @@ declare(strict_types=1);
 
 namespace Rachnix\CheckoutFields\Tests\Integration;
 
+use Rachnix\CheckoutFields\Checkout\WooCoreFieldCatalog;
 use Rachnix\CheckoutFields\FieldTypes\FieldTypeRegistry;
+use Rachnix\CheckoutFields\Rest\CoreFieldsController;
 use Rachnix\CheckoutFields\Repository\AuditLogRepository;
 use Rachnix\CheckoutFields\Repository\FieldCache;
 use Rachnix\CheckoutFields\Repository\FieldRepository;
@@ -59,11 +61,13 @@ final class FieldsApiTest extends IntegrationTestCase {
 			new FieldRepository( self::db(), self::tables(), new FieldCache( self::CACHE_KEY ), $logger ),
 			$this->audit,
 			$registry,
-			$patterns
+			$patterns,
+			new WooCoreFieldCatalog()
 		);
 		$controllers = array(
 			new FieldsController( $service, $registry, $patterns, $logger, 'rxcftest/v1' ),
 			new SectionsController( $service, $logger, 'rxcftest/v1' ),
+			new CoreFieldsController( $service, $logger, 'rxcftest/v1' ),
 		);
 
 		$this->routes = static function () use ( $controllers ): void {
@@ -285,6 +289,72 @@ final class FieldsApiTest extends IntegrationTestCase {
 			$this->assertMatchesRegularExpression( '/^[0-9a-f]{64}$/', (string) $entry['ip_hash'] );
 			$this->assertStringNotContainsString( '203.0.113.7', (string) wp_json_encode( $entry ) );
 		}
+	}
+
+	public function test_keys_are_unique_across_sections(): void {
+		$this->call( 'POST', '/fields', $this->gift_note() );
+		$other = $this->call( 'POST', '/fields', array_merge( $this->gift_note(), array( 'section' => 'billing' ) ) );
+
+		$this->assertSame( 400, $other->get_status(), 'Values are stored as _rxcf_{key}, so keys must not repeat.' );
+	}
+
+	public function test_core_fields_list_woocommerce_defaults(): void {
+		$items = $this->call( 'GET', '/core-fields' )->get_data();
+		$keys  = array_column( $items, 'key' );
+
+		foreach ( array( 'billing_first_name', 'billing_email', 'shipping_city', 'order_comments' ) as $key ) {
+			$this->assertContains( $key, $keys );
+		}
+		$this->assertNull( $items[ array_search( 'billing_city', $keys, true ) ]['override'] );
+	}
+
+	public function test_customise_hide_and_restore_a_core_field(): void {
+		$hidden = $this->call( 'POST', '/core-fields/billing/billing_city', array( 'enabled' => false ) );
+		$this->assertSame( 200, $hidden->get_status(), wp_json_encode( $hidden->get_data() ) );
+		$this->assertTrue( $hidden->get_data()['is_core'] );
+		$this->assertSame( 'core', $hidden->get_data()['type'] );
+		$this->assertFalse( $hidden->get_data()['enabled'] );
+
+		$again = $this->call( 'POST', '/core-fields/billing/billing_city', array( 'label' => 'Town' ) );
+		$this->assertSame( $hidden->get_data()['uuid'], $again->get_data()['uuid'], 'Second change updates the same override.' );
+		$this->assertSame( 'Town', $again->get_data()['label'] );
+		$this->assertFalse( $again->get_data()['enabled'], 'Earlier change kept.' );
+
+		$this->assertSame( 200, $this->call( 'DELETE', '/fields/' . $hidden->get_data()['uuid'] )->get_status(), 'Deleting restores WooCommerce.' );
+		$items = $this->call( 'GET', '/core-fields' )->get_data();
+		$this->assertNull( $items[ array_search( 'billing_city', array_column( $items, 'key' ), true ) ]['override'] );
+	}
+
+	public function test_core_override_starts_from_woocommerce_defaults(): void {
+		$field = $this->call( 'POST', '/core-fields/billing/billing_first_name', array( 'label' => 'Given name' ) )->get_data();
+
+		$this->assertSame( '', $field['placeholder'], 'Empty keeps WooCommerce text.' );
+		$this->assertTrue( $field['settings']['required'] );
+		$this->assertSame( 'half', $field['settings']['width'] );
+		$this->assertSame( 10, $field['priority'] );
+	}
+
+	public function test_core_fields_the_checkout_needs_are_protected(): void {
+		$this->assertSame( 400, $this->call( 'POST', '/core-fields/billing/billing_email', array( 'enabled' => false ) )->get_status() );
+		$this->assertSame( 400, $this->call( 'POST', '/core-fields/billing/billing_country', array( 'enabled' => false ) )->get_status() );
+		$this->assertSame( 400, $this->call( 'POST', '/core-fields/billing/billing_email', array( 'settings' => array( 'required' => false ) ) )->get_status() );
+		$this->assertSame( 400, $this->call( 'POST', '/core-fields/billing/not_a_core_field' )->get_status() );
+		$this->assertSame( 404, $this->call( 'POST', '/core-fields/payment/billing_email' )->get_status(), 'Section outside the route pattern.' );
+	}
+
+	public function test_core_override_cannot_change_type_or_key(): void {
+		$uuid = $this->call( 'POST', '/core-fields/billing/billing_phone', array( 'label' => 'Mobile' ) )->get_data()['uuid'];
+
+		$patched = $this->call(
+			'PATCH',
+			"/fields/{$uuid}",
+			array(
+				'type' => 'select',
+				'key'  => 'billing_hacked',
+			)
+		)->get_data();
+		$this->assertSame( 'core', $patched['type'] );
+		$this->assertSame( 'billing_phone', $patched['key'] );
 	}
 
 	public function test_purge_removes_only_old_entries(): void {

@@ -9,6 +9,7 @@ declare(strict_types=1);
 
 namespace Rachnix\CheckoutFields\Rest;
 
+use Rachnix\CheckoutFields\Domain\Field;
 use Rachnix\CheckoutFields\Exception\DatabaseError;
 use Rachnix\CheckoutFields\Exception\FieldNotFound;
 use Rachnix\CheckoutFields\Exception\InvalidFieldInput;
@@ -58,6 +59,19 @@ abstract class AbstractController extends \WP_REST_Controller {
 			throw new \LogicException( 'REST namespace is empty.' );
 		}
 		return $route_namespace;
+	}
+
+	/**
+	 * A field as the API returns it.
+	 *
+	 * @param Field $field Field.
+	 * @return array<string, mixed>
+	 */
+	protected function field_data( Field $field ): array {
+		return $field->to_array() + array(
+			'created_at' => $field->created_at?->format( DATE_ATOM ),
+			'updated_at' => $field->updated_at?->format( DATE_ATOM ),
+		);
 	}
 
 	/**

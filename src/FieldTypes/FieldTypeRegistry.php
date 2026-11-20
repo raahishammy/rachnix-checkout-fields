@@ -46,6 +46,26 @@ final class FieldTypeRegistry {
 	private array $types = array();
 
 	/**
+	 * @param (\Closure(self): void)|null $extend Runs once, on the first lookup, so add-ons that
+	 *                                            load after this plugin can still register types.
+	 */
+	public function __construct(
+		private ?\Closure $extend = null,
+	) {}
+
+	/**
+	 * Runs the extension callback the first time any type is looked up.
+	 */
+	private function extend_once(): void {
+		if ( null === $this->extend ) {
+			return;
+		}
+		$extend       = $this->extend;
+		$this->extend = null;
+		$extend( $this );
+	}
+
+	/**
 	 * Registers every type in FREE_TYPES.
 	 */
 	public function register_free_types(): void {
@@ -60,7 +80,8 @@ final class FieldTypeRegistry {
 	 */
 	public function register( FieldTypeInterface $type ): void {
 		$slug = $type->slug();
-		if ( 1 !== preg_match( Patterns::TYPE_SLUG, $slug ) ) {
+		// "core" marks WooCommerce core field overrides and must never become a real type.
+		if ( 1 !== preg_match( Patterns::TYPE_SLUG, $slug ) || 'core' === $slug ) {
 			throw FieldTypeError::invalid_slug( $type::class ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- class name from code, never printed.
 		}
 		if ( isset( $this->types[ $slug ] ) ) {
@@ -73,6 +94,7 @@ final class FieldTypeRegistry {
 	 * @param string $slug Type slug.
 	 */
 	public function has( string $slug ): bool {
+		$this->extend_once();
 		return isset( $this->types[ $slug ] );
 	}
 
@@ -81,6 +103,7 @@ final class FieldTypeRegistry {
 	 * @throws FieldTypeError When no such type is registered.
 	 */
 	public function get( string $slug ): FieldTypeInterface {
+		$this->extend_once();
 		if ( ! isset( $this->types[ $slug ] ) ) {
 			throw FieldTypeError::unknown( $slug ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- never printed; callers log it.
 		}
@@ -93,6 +116,7 @@ final class FieldTypeRegistry {
 	 * @return list<FieldTypeInterface>
 	 */
 	public function all(): array {
+		$this->extend_once();
 		return array_values( $this->types );
 	}
 
@@ -102,6 +126,7 @@ final class FieldTypeRegistry {
 	 * @return list<string>
 	 */
 	public function type_slugs(): array {
+		$this->extend_once();
 		return array_keys( $this->types );
 	}
 }

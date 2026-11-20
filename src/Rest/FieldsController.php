@@ -159,7 +159,7 @@ final class FieldsController extends AbstractController {
 
 		$items = array();
 		foreach ( $this->service->list( $section ) as $field ) {
-			$items[] = $this->data( $field );
+			$items[] = $this->field_data( $field );
 		}
 		return rest_ensure_response( $items );
 	}
@@ -171,7 +171,7 @@ final class FieldsController extends AbstractController {
 	 */
 	public function get_item( $request ) {
 		$field = $this->service->get( (string) $request->get_param( 'uuid' ) );
-		return null === $field ? $this->error_response( new FieldNotFound() ) : rest_ensure_response( $this->data( $field ) );
+		return null === $field ? $this->error_response( new FieldNotFound() ) : rest_ensure_response( $this->field_data( $field ) );
 	}
 
 	/**
@@ -186,7 +186,7 @@ final class FieldsController extends AbstractController {
 			return $this->error_response( $e );
 		}
 
-		$response = rest_ensure_response( $this->data( $field ) );
+		$response = rest_ensure_response( $this->field_data( $field ) );
 		$response->set_status( 201 );
 		$response->header( 'Location', rest_url( sprintf( '%s/fields/%s', $this->namespace, $field->uuid ) ) );
 		return $response;
@@ -203,7 +203,7 @@ final class FieldsController extends AbstractController {
 		} catch ( InvalidFieldInput | FieldNotFound | DatabaseError $e ) {
 			return $this->error_response( $e );
 		}
-		return rest_ensure_response( $this->data( $field ) );
+		return rest_ensure_response( $this->field_data( $field ) );
 	}
 
 	/**
@@ -225,7 +225,7 @@ final class FieldsController extends AbstractController {
 		return rest_ensure_response(
 			array(
 				'deleted'  => true,
-				'previous' => $this->data( $field ),
+				'previous' => $this->field_data( $field ),
 			)
 		);
 	}
@@ -245,7 +245,7 @@ final class FieldsController extends AbstractController {
 		} catch ( InvalidFieldInput | DatabaseError $e ) {
 			return $this->error_response( $e );
 		}
-		return rest_ensure_response( array_map( fn( Field $field ): array => $this->data( $field ), $fields->to_list() ) );
+		return rest_ensure_response( array_map( fn( Field $field ): array => $this->field_data( $field ), $fields->to_list() ) );
 	}
 
 	/**
@@ -423,17 +423,6 @@ final class FieldsController extends AbstractController {
 		);
 
 		return $this->add_additional_fields_schema( $this->schema );
-	}
-
-	/**
-	 * @param Field $field Field.
-	 * @return array<string, mixed>
-	 */
-	private function data( Field $field ): array {
-		return $field->to_array() + array(
-			'created_at' => $field->created_at?->format( DATE_ATOM ),
-			'updated_at' => $field->updated_at?->format( DATE_ATOM ),
-		);
 	}
 
 	/**

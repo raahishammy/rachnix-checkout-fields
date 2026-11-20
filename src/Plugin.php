@@ -9,7 +9,12 @@ declare(strict_types=1);
 
 namespace Rachnix\CheckoutFields;
 
+use Rachnix\CheckoutFields\Checkout\Classic\ClassicCheckoutIntegration;
+use Rachnix\CheckoutFields\Checkout\OrderDataWriter;
+use Rachnix\CheckoutFields\Checkout\WooCoreFieldCatalog;
+use Rachnix\CheckoutFields\Contracts\CoreFieldCatalogInterface;
 use Rachnix\CheckoutFields\Contracts\FieldRepositoryInterface;
+use Rachnix\CheckoutFields\Rest\CoreFieldsController;
 use Rachnix\CheckoutFields\Contracts\Hookable;
 use Rachnix\CheckoutFields\Core\HposCompat;
 use Rachnix\CheckoutFields\Core\MigrationFailedNotice;
@@ -97,16 +102,18 @@ final class Plugin {
 		$c->set(
 			FieldTypeRegistry::class,
 			static function (): FieldTypeRegistry {
-				$registry = new FieldTypeRegistry();
+				$registry = new FieldTypeRegistry(
+					static function ( FieldTypeRegistry $registry ): void {
+						/**
+						 * Register extra field types. Fires once, on the first type lookup (not at
+						 * plugins_loaded), so add-ons loading after this plugin can still hook in.
+						 *
+						 * @param FieldTypeRegistry $registry Call `$registry->register( new MyType() )`.
+						 */
+						do_action( 'rxcf_register_field_types', $registry );
+					}
+				);
 				$registry->register_free_types();
-
-				/**
-				 * Register extra field types. Fires once, the first time the registry is needed.
-				 *
-				 * @param FieldTypeRegistry $registry Call `$registry->register( new MyType() )`.
-				 */
-				do_action( 'rxcf_register_field_types', $registry );
-
 				return $registry;
 			}
 		);
@@ -142,13 +149,27 @@ final class Plugin {
 				$c->get( Logger::class )
 			)
 		);
+		$c->set( CoreFieldCatalogInterface::class, static fn() => new WooCoreFieldCatalog() );
 		$c->set(
 			FieldService::class,
 			static fn( Container $c ) => new FieldService(
 				$c->get( FieldRepositoryInterface::class ),
 				$c->get( AuditLogRepository::class ),
 				$c->get( FieldTypeRegistry::class ),
-				$c->get( PatternLibrary::class )
+				$c->get( PatternLibrary::class ),
+				$c->get( CoreFieldCatalogInterface::class )
+			)
+		);
+
+		$c->set( OrderDataWriter::class, static fn() => new OrderDataWriter() );
+		$c->set(
+			ClassicCheckoutIntegration::class,
+			static fn( Container $c ) => new ClassicCheckoutIntegration(
+				$c->get( FieldRepositoryInterface::class ),
+				$c->get( FieldTypeRegistry::class ),
+				$c->get( Sanitizer::class ),
+				$c->get( ValidationService::class ),
+				$c->get( OrderDataWriter::class )
 			)
 		);
 
@@ -165,6 +186,7 @@ final class Plugin {
 						$c->get( Logger::class )
 					),
 					new SectionsController( $c->get( FieldService::class ), $c->get( Logger::class ) ),
+					new CoreFieldsController( $c->get( FieldService::class ), $c->get( Logger::class ) ),
 				)
 			)
 		);
@@ -181,6 +203,8 @@ final class Plugin {
 			$this->container->get( Capabilities::class ),
 			$this->container->get( AuditLogPurger::class ),
 			$this->container->get( RestRoutes::class ),
+			// Hooks only; field definitions are read when WooCommerce builds the checkout.
+			$this->container->get( ClassicCheckoutIntegration::class ),
 		);
 	}
 

@@ -1,0 +1,19 @@
+{
+	"name": "rachnix-checkout-fields",
+	"private": true,
+	"description": "Development tooling for Rachnix Checkout Field Editor for WooCommerce.",
+	"license": "GPL-2.0-or-later",
+	"engines": {
+		"node": ">=20"
+	},
+	"scripts": {
+		"env:start": "wp-env start",
+		"env:stop": "wp-env stop",
+		"env:setup": "wp-env run cli wp plugin activate woocommerce && wp-env run cli wp plugin activate rachnix-checkout-fields",
+		"test:e2e": "playwright test"
+	},
+	"devDependencies": {
+		"@playwright/test": "^1.55.0",
+		"@wordpress/env": "^10.0.0"
+	}
+}

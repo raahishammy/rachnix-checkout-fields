@@ -112,3 +112,30 @@ jobs:
       - name: Fail on PHP errors from this plugin
         run: |
           npx @wordpress/env@10 run cli bash -c 'test ! -f wp-content/debug.log || ! grep -i "rachnix-checkout-fields" wp-content/debug.log'
+
+  e2e:
+    name: E2E classic checkout (Playwright)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - run: npx wp-env start
+      - name: Activate plugins (WooCommerce first)
+        run: |
+          npx wp-env run cli wp plugin activate woocommerce
+          npx wp-env run cli wp plugin activate rachnix-checkout-fields
+      - run: npx playwright test
+      - name: Upload Playwright report
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: |
+            playwright-report/
+            test-results/
+          retention-days: 7

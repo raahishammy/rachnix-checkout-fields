@@ -44,6 +44,28 @@ final class FieldTypeRegistryTest extends TestCase {
 		$this->assertSame( 'color', $registry->type_slugs()[11] );
 	}
 
+	public function test_extension_runs_once_on_first_lookup_not_on_construction(): void {
+		$calls    = 0;
+		$registry = new FieldTypeRegistry(
+			function ( FieldTypeRegistry $r ) use ( &$calls ): void {
+				++$calls;
+				$r->register( $this->type( 'color' ) );
+			}
+		);
+		$registry->register_free_types();
+		$this->assertSame( 0, $calls, 'Not on construction or registration.' );
+
+		$this->assertTrue( $registry->has( 'color' ) );
+		$registry->all();
+		$registry->type_slugs();
+		$this->assertSame( 1, $calls );
+	}
+
+	public function test_core_is_never_a_field_type(): void {
+		$this->expectException( FieldTypeError::class );
+		( new FieldTypeRegistry() )->register( $this->type( 'core' ) );
+	}
+
 	public function test_duplicate_slug_is_rejected(): void {
 		$registry = new FieldTypeRegistry();
 		$registry->register( new TextField() );
