@@ -17,7 +17,7 @@ jobs:
     name: PHPCS + PHPStan
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - uses: shivammathur/setup-php@v2
         with:
           php-version: '8.2'
@@ -41,7 +41,7 @@ jobs:
           - php: '8.6'
             experimental: true
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - uses: shivammathur/setup-php@v2
         with:
           php-version: ${{ matrix.php }}
@@ -64,7 +64,7 @@ jobs:
           - { php: '8.4', wp: 'latest', wc: 'latest-stable' }
           - { php: '8.5', wp: 'latest', wc: 'latest-stable' }
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       # vendor/ is mounted into the wp-env containers, where the integration tests run.
       - uses: shivammathur/setup-php@v2
         with:
@@ -72,7 +72,7 @@ jobs:
           tools: composer:v2
           coverage: none
       - run: composer install --no-progress --prefer-dist
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v5
         with:
           node-version: '22'
       # Plugins are mapped (not listed under "plugins") so their folders are exactly
