@@ -15,13 +15,24 @@ export type Store = {
 	date_supported: boolean;
 };
 
-/** Logs in as wp-env's administrator (admin / password). */
-export async function logInAsAdmin( page: Page, store: Store ) {
-	await page.goto( `${ store.home_url }wp-login.php` );
+/**
+ * Logs in as wp-env's administrator (admin / password), straight to `target` (an admin path).
+ * Going via the dashboard is slow in CI (WooCommerce's dashboard widgets make remote requests),
+ * and only the HTML is awaited, not every asset.
+ *
+ * @param page   Page.
+ * @param store  Store from setup.php.
+ * @param target Admin path to land on, e.g. "admin.php?page=wc-orders".
+ */
+export async function logInAsAdmin( page: Page, store: Store, target = 'admin.php?page=wc-orders' ) {
+	const destination = `${ store.home_url }wp-admin/${ target }`;
+	await page.goto( `${ store.home_url }wp-login.php?redirect_to=${ encodeURIComponent( destination ) }` );
 	await page.fill( '#user_login', 'admin' );
 	await page.fill( '#user_pass', 'password' );
-	await page.click( '#wp-submit' );
-	await page.waitForURL( /wp-admin/ );
+	await Promise.all( [
+		page.waitForURL( /wp-admin/, { waitUntil: 'domcontentloaded' } ),
+		page.click( '#wp-submit' ),
+	] );
 }
 
 /**
@@ -36,13 +47,13 @@ export async function logInAsAdmin( page: Page, store: Store ) {
 export async function expectValuesForStore( page: Page, store: Store, orderId: string, values: string[] ) {
 	await logInAsAdmin( page, store );
 
-	await page.goto( `${ store.home_url }wp-admin/admin.php?page=wc-orders&action=edit&id=${ orderId }` );
+	await page.goto( `${ store.home_url }wp-admin/admin.php?page=wc-orders&action=edit&id=${ orderId }`, { waitUntil: 'domcontentloaded' } );
 	const screen = await page.content();
 	for ( const value of values ) {
 		expect( screen, `order screen shows ${ value }` ).toContain( value );
 	}
 
-	await page.goto( `${ store.home_url }wp-admin/admin.php?page=wc-orders` );
+	await page.goto( `${ store.home_url }wp-admin/admin.php?page=wc-orders`, { waitUntil: 'domcontentloaded' } );
 	await expect( page.locator( 'th#rxcf_rx_vat, th.column-rxcf_rx_vat' ).first() ).toContainText( 'VAT number' );
 	await expect( page.locator( `tr#order-${ orderId } td.column-rxcf_rx_vat, tr:has(a[href*="id=${ orderId }"]) td.column-rxcf_rx_vat` ).first() ).toContainText( 'GB123456' );
 }

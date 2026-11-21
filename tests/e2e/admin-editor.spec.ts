@@ -4,7 +4,7 @@
  * Also: nothing is live before "Publish changes", undo, and the browser backup of the draft.
  */
 import { test, expect, type Page } from '@playwright/test';
-import { wpEvalFile, type Store } from './helpers';
+import { logInAsAdmin, wpEvalFile, type Store } from './helpers';
 
 let store: Store;
 
@@ -17,18 +17,14 @@ test.beforeAll( () => {
 async function logIn( page: Page ) {
 	// Leaving with unpublished changes asks first; accept, as the owner would after reading it.
 	page.on( 'dialog', ( dialog ) => dialog.accept() );
-	await page.goto( `${ store.home_url }wp-login.php` );
-	await page.fill( '#user_login', 'admin' );
-	await page.fill( '#user_pass', 'password' );
-	await page.click( '#wp-submit' );
-	await page.waitForURL( /wp-admin/ );
+	await logInAsAdmin( page, store, 'admin.php?page=rxcf-checkout-fields' );
 }
 
 // Notices are scoped to '.components-notice': WordPress also copies their text into a hidden
 // screen-reader live region, so a page-wide getByText() would find it twice.
 
 async function openEditor( page: Page ) {
-	await page.goto( `${ store.home_url }wp-admin/admin.php?page=rxcf-checkout-fields` );
+	await page.goto( `${ store.home_url }wp-admin/admin.php?page=rxcf-checkout-fields`, { waitUntil: 'domcontentloaded' } );
 	await expect( page.getByRole( 'button', { name: 'Publish changes' } ) ).toBeVisible();
 }
 

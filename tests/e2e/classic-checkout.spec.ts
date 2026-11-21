@@ -38,7 +38,7 @@ async function fillCustomFields( page: Page, overrides: Record< string, string >
 		rxcf_rx_mobile: '+44 20 7946 0958',
 		rxcf_rx_note: 'Leave at door\nRing twice',
 		rxcf_rx_floor: '3',
-		rxcf_rx_pin: '1234',
+		rxcf_rx_pin: '7319',
 		rxcf_rx_date: '2026-12-24',
 		...overrides,
 	};
@@ -121,7 +121,7 @@ test( 'an order with every field type is placed and every value is saved', async
 		_rxcf_rx_gift: '1',
 		_rxcf_rx_mobile: '+44 20 7946 0958',
 		_rxcf_rx_note: 'Leave at door\nRing twice',
-		_rxcf_rx_pin: '1234',
+		_rxcf_rx_pin: '7319',
 		_rxcf_rx_slot: 'pm',
 		_rxcf_rx_source: 'e2e',
 		_rxcf_rx_vat: 'GB123456',
@@ -133,8 +133,9 @@ test( 'an order with every field type is placed and every value is saved', async
 	await expect( thankYou ).toContainText( 'GB123456' );
 	await expect( thankYou ).toContainText( 'Pm', { useInnerText: true } ); // Choice label, not its value.
 	await expect( thankYou ).toContainText( '••••' ); // Password-type value masked for customers.
-	await expect( thankYou ).not.toContainText( '1234' );
+	await expect( thankYou.locator( 'tr', { hasText: 'Gift card PIN' } ) ).toContainText( '••••' );
+	await expect( thankYou ).not.toContainText( '7319' ); // The real PIN never reaches the customer page.
 	await expect( thankYou ).not.toContainText( 'e2e' ); // Hidden field: store only.
 
-	await expectValuesForStore( page, store, orderId as string, [ 'GB123456', 'Leave at door', '1234' ] );
+	await expectValuesForStore( page, store, orderId as string, [ 'GB123456', 'Leave at door', '7319' ] );
 } );
