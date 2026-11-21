@@ -6,6 +6,7 @@ parameters:
 	paths:
 		- rachnix-checkout-fields.php
 		- src
+		- tests/perf
 	bootstrapFiles:
 		- vendor/php-stubs/woocommerce-stubs/woocommerce-stubs.php
 	scanFiles:

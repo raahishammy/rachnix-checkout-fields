@@ -91,11 +91,15 @@ final class AdminPage implements Hookable {
 		wp_add_inline_script( self::SCRIPT_HANDLE, 'window.rxcfAdmin = ' . wp_json_encode( $this->config() ) . ';', 'before' );
 
 		wp_enqueue_style( 'wp-components' );
-		if ( is_readable( $dir . '/assets/build/index.css' ) ) {
-			wp_enqueue_style( self::SCRIPT_HANDLE, plugins_url( 'assets/build/index.css', $this->plugin_file ), array( 'wp-components' ), $version );
-			// @wordpress/scripts also builds index-rtl.css; WordPress swaps it in for right-to-left languages.
-			if ( is_readable( $dir . '/assets/build/index-rtl.css' ) ) {
-				wp_style_add_data( self::SCRIPT_HANDLE, 'rtl', 'replace' );
+		// @wordpress/scripts names the CSS of an imported "style.scss" style-index.css (other
+		// names give index.css), plus an -rtl.css twin that WordPress swaps in for RTL languages.
+		foreach ( array( 'style-index', 'index' ) as $name ) {
+			if ( is_readable( "{$dir}/assets/build/{$name}.css" ) ) {
+				wp_enqueue_style( self::SCRIPT_HANDLE, plugins_url( "assets/build/{$name}.css", $this->plugin_file ), array( 'wp-components' ), $version );
+				if ( is_readable( "{$dir}/assets/build/{$name}-rtl.css" ) ) {
+					wp_style_add_data( self::SCRIPT_HANDLE, 'rtl', 'replace' );
+				}
+				break;
 			}
 		}
 	}

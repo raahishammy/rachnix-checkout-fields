@@ -195,6 +195,94 @@ jobs:
             test-results/**/*.png
           retention-days: 14
 
+  plugin-check:
+    # The official Plugin Check, on exactly the files that ship (dist/, built by
+    # bin/build-dist.sh from .distignore), so dev files cannot hide real problems.
+    name: Plugin Check (shipped files)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      - run: npm run build
+      - run: bash bin/build-dist.sh
+      - name: Point wp-env at the shipped files
+        run: |
+          cat > .wp-env.override.json <<'JSON'
+          {
+            "mappings": {
+              "wp-content/plugins/woocommerce": "https://downloads.wordpress.org/plugin/woocommerce.latest-stable.zip",
+              "wp-content/plugins/plugin-check": "https://downloads.wordpress.org/plugin/plugin-check.latest-stable.zip",
+              "wp-content/plugins/rachnix-checkout-fields": "./dist/rachnix-checkout-fields"
+            }
+          }
+          JSON
+      - name: Start wp-env (retried once if MySQL is slow to start)
+        run: npx wp-env start || (sleep 15 && npx wp-env start)
+      - name: Activate plugins (WooCommerce first)
+        run: |
+          npx wp-env run cli wp plugin activate woocommerce
+          npx wp-env run cli wp plugin activate rachnix-checkout-fields
+          npx wp-env run cli wp plugin activate plugin-check
+      # Full report, warnings included, for reading. plugin_readme is skipped until
+      # readme.txt is written in step 12; remove that exclusion then.
+      - name: Plugin Check report (errors and warnings)
+        run: npx wp-env run cli wp plugin check rachnix-checkout-fields --require=./wp-content/plugins/plugin-check/cli.php --exclude-checks=plugin_readme
+      - name: Plugin Check gate (no errors)
+        run: |
+          npx wp-env run cli wp plugin check rachnix-checkout-fields --require=./wp-content/plugins/plugin-check/cli.php --exclude-checks=plugin_readme --ignore-warnings | tee plugin-check.txt
+          grep -q "No errors found" plugin-check.txt
+
+  semgrep:
+    name: Semgrep (PHP and JavaScript security rules)
+    runs-on: ubuntu-latest
+    container: semgrep/semgrep
+    steps:
+      - uses: actions/checkout@v5
+      - name: Semgrep report (all severities)
+        run: semgrep scan --config p/php --config p/javascript --config p/secrets --metrics=off src rachnix-checkout-fields.php assets/src
+      - name: Semgrep gate (no ERROR findings)
+        run: semgrep scan --config p/php --config p/javascript --config p/secrets --metrics=off --severity ERROR --error src rachnix-checkout-fields.php assets/src
+
+  zap:
+    # OWASP ZAP active scan of the wp-env store with our fields on the classic checkout.
+    # Slow (up to about 30 minutes), so it runs only from "Run workflow", before each release.
+    if: github.event_name == 'workflow_dispatch'
+    name: OWASP ZAP scan
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      - run: npm run build
+      - name: Start wp-env (retried once if MySQL is slow to start)
+        run: npx wp-env start || (sleep 15 && npx wp-env start)
+      - name: Activate plugins and add the test fields
+        run: |
+          npx wp-env run cli wp plugin activate woocommerce
+          npx wp-env run cli wp plugin activate rachnix-checkout-fields
+          npx wp-env run cli wp eval-file wp-content/plugins/rachnix-checkout-fields/tests/e2e/setup.php classic
+      - name: ZAP full scan
+        uses: zaproxy/action-full-scan@v0.12.0
+        with:
+          target: 'http://localhost:8888/'
+          cmd_options: '-m 5 -z "-config scanner.maxScanDurationInMins=20"'
+          allow_issue_writing: false
+          fail_action: false
+          artifact_name: zap-report
+      - name: Fail on high-risk alerts
+        run: |
+          HIGH=$(jq '[.site[].alerts[] | select(.riskcode == "3")] | length' report_json.json)
+          jq -r '.site[].alerts[] | "\(.riskdesc)  \(.alert)  (\(.count) found)"' report_json.json
+          echo "High-risk alerts: ${HIGH}"
+          test "${HIGH}" = "0"
+
   js:
     name: JavaScript (lint, build, audit)
     runs-on: ubuntu-latest
@@ -209,6 +297,6 @@ jobs:
       - run: npm run test:js
       - run: npm run build
       - name: Build produced the admin app
-        run: test -f assets/build/index.js && test -f assets/build/index.asset.php
+        run: test -f assets/build/index.js && test -f assets/build/index.asset.php && test -f assets/build/style-index.css
       # Only bundled packages ship to stores; development tools are not audited here.
       - run: npm audit --omit=dev --audit-level=high

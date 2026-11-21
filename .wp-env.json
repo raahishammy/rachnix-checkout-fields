@@ -5,7 +5,8 @@
 	"plugins": [],
 	"mappings": {
 		"wp-content/plugins/woocommerce": "https://downloads.wordpress.org/plugin/woocommerce.latest-stable.zip",
-		"wp-content/plugins/rachnix-checkout-fields": "."
+		"wp-content/plugins/rachnix-checkout-fields": ".",
+		"wp-content/mu-plugins": "./tests/perf/mu-plugins"
 	},
 	"config": {
 		"WP_DEBUG": true,
