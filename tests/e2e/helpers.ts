@@ -33,6 +33,10 @@ export async function logInAsAdmin( page: Page, store: Store, target = 'admin.ph
 		page.waitForURL( /wp-admin/, { waitUntil: 'domcontentloaded' } ),
 		page.click( '#wp-submit' ),
 	] );
+	// On a fresh store, WooCommerce sends the first admin login to its own setup screen.
+	if ( ! page.url().startsWith( destination ) ) {
+		await page.goto( destination, { waitUntil: 'domcontentloaded' } );
+	}
 }
 
 /**

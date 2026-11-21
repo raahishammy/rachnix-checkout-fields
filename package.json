@@ -16,7 +16,7 @@
 		"env:stop": "wp-env stop",
 		"env:setup": "wp-env run cli wp plugin activate woocommerce && wp-env run cli wp plugin activate rachnix-checkout-fields",
 		"test:e2e": "playwright test",
-		"make-pot": "wp-env run cli wp i18n make-pot wp-content/plugins/rachnix-checkout-fields wp-content/plugins/rachnix-checkout-fields/languages/rachnix-checkout-fields.pot --slug=rachnix-checkout-fields --domain=rachnix-checkout-fields --exclude=node_modules,vendor,tests,assets/src,.specs,.github"
+		"make-pot": "wp-env run cli php -d memory_limit=1G /usr/local/bin/wp i18n make-pot wp-content/plugins/rachnix-checkout-fields wp-content/plugins/rachnix-checkout-fields/languages/rachnix-checkout-fields.pot --slug=rachnix-checkout-fields --domain=rachnix-checkout-fields --exclude=node_modules,vendor,tests,assets/src,.specs,.github"
 	},
 	"dependencies": {
 		"@dnd-kit/core": "^6.1.0",

@@ -314,3 +314,13 @@ $border: #dcdcde;
 		}
 	}
 }
+
+// WCAG 2.2 target size (2.5.8): WordPress's checkboxes, radios and toggles are smaller than
+// 24px, so give each one room; their centres end up at least 24px apart.
+.rxcf-admin {
+	.components-checkbox-control,
+	.components-toggle-control,
+	.components-radio-control__option {
+		padding-block: 4px;
+	}
+}
