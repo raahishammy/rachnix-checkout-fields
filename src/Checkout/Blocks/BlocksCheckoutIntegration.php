@@ -16,6 +16,7 @@ use Rachnix\CheckoutFields\Domain\Field;
 use Rachnix\CheckoutFields\Domain\Section;
 use Rachnix\CheckoutFields\Domain\ValidationRuleType;
 use Rachnix\CheckoutFields\FieldTypes\FieldTypeRegistry;
+use Rachnix\CheckoutFields\I18n\StringTranslations;
 use Rachnix\CheckoutFields\Security\Logger;
 use Rachnix\CheckoutFields\Service\Sanitizer;
 use Rachnix\CheckoutFields\Service\ValidationService;
@@ -52,6 +53,7 @@ final class BlocksCheckoutIntegration implements Hookable {
 	 * @param Sanitizer                $sanitizer Value sanitiser.
 	 * @param ValidationService        $validator Value validator.
 	 * @param Logger                   $logger    Error log.
+	 * @param StringTranslations|null  $i18n      Translations of store-owner texts (WPML, Polylang).
 	 */
 	public function __construct(
 		private readonly FieldRepositoryInterface $fields,
@@ -61,6 +63,7 @@ final class BlocksCheckoutIntegration implements Hookable {
 		private readonly Sanitizer $sanitizer,
 		private readonly ValidationService $validator,
 		private readonly Logger $logger,
+		private readonly ?StringTranslations $i18n = null,
 	) {}
 
 	public function register(): void {
@@ -124,6 +127,8 @@ final class BlocksCheckoutIntegration implements Hookable {
 	 * @return array<string, mixed>|null
 	 */
 	public function options_for( Field $field ): ?array {
+		// Translated texts; the validate callback below keeps this copy, so messages are translated too.
+		$field    = $this->i18n?->field( $field ) ?? $field;
 		$location = self::LOCATIONS[ $field->section->value ] ?? null;
 		if ( $field->is_core || ! $field->enabled || null === $location || ! $this->types->has( $field->type ) ) {
 			return null;

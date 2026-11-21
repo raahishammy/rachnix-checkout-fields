@@ -20,6 +20,7 @@ use Rachnix\CheckoutFields\Domain\ValidationErrorCode;
 use Rachnix\CheckoutFields\Domain\ValidationRuleType;
 use Rachnix\CheckoutFields\Domain\Width;
 use Rachnix\CheckoutFields\FieldTypes\FieldTypeRegistry;
+use Rachnix\CheckoutFields\I18n\StringTranslations;
 use Rachnix\CheckoutFields\Service\Sanitizer;
 use Rachnix\CheckoutFields\Service\ValidationService;
 
@@ -70,6 +71,7 @@ final class ClassicCheckoutIntegration implements Hookable {
 	 * @param Sanitizer                $sanitizer Value sanitiser.
 	 * @param ValidationService        $validator Value validator.
 	 * @param OrderDataWriter          $writer    Order storage.
+	 * @param StringTranslations|null  $i18n      Translations of store-owner texts (WPML, Polylang).
 	 */
 	public function __construct(
 		private readonly FieldRepositoryInterface $fields,
@@ -77,6 +79,7 @@ final class ClassicCheckoutIntegration implements Hookable {
 		private readonly Sanitizer $sanitizer,
 		private readonly ValidationService $validator,
 		private readonly OrderDataWriter $writer,
+		private readonly ?StringTranslations $i18n = null,
 	) {}
 
 	public function register(): void {
@@ -104,6 +107,7 @@ final class ClassicCheckoutIntegration implements Hookable {
 		}
 
 		foreach ( $this->fields->all() as $field ) {
+			$field    = $this->i18n?->field( $field ) ?? $field;
 			$fieldset = self::FIELDSETS[ $field->section->value ] ?? null;
 			if ( null === $fieldset || ! isset( $fieldsets[ $fieldset ] ) || ! is_array( $fieldsets[ $fieldset ] ) ) {
 				continue;
@@ -136,6 +140,7 @@ final class ClassicCheckoutIntegration implements Hookable {
 		}
 
 		foreach ( $this->submitted_fields( $data ) as $field ) {
+			$field = $this->i18n?->field( $field ) ?? $field; // Messages use the translated label.
 			$value = $this->submitted_value( $field );
 			if ( null === $value ) {
 				continue;

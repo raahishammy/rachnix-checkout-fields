@@ -7,6 +7,8 @@
 	<exclude-pattern>/node_modules/*</exclude-pattern>
 	<exclude-pattern>/assets/build/*</exclude-pattern>
 	<exclude-pattern>/.specs/*</exclude-pattern>
+	<!-- Copies of other plugins' function signatures, for PHPStan only. -->
+	<exclude-pattern>/tests/phpstan/*</exclude-pattern>
 
 	<arg name="extensions" value="php"/>
 	<arg name="parallel" value="8"/>

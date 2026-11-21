@@ -98,6 +98,33 @@ final readonly class Field {
 	}
 
 	/**
+	 * Copy with other visible texts (translations), everything else unchanged.
+	 *
+	 * @param string            $label       Label.
+	 * @param string            $placeholder Placeholder.
+	 * @param list<FieldOption> $options     Choices.
+	 */
+	public function with_texts( string $label, string $placeholder, array $options ): self {
+		$s = $this->settings;
+		return new self(
+			uuid: $this->uuid,
+			section: $this->section,
+			key: $this->key,
+			type: $this->type,
+			label: $label,
+			placeholder: $placeholder,
+			settings: new FieldSettings( $s->default_value, $s->required, $s->width, $s->css_classes, $options, $s->validation, $s->display, $s->extensions ),
+			priority: $this->priority,
+			enabled: $this->enabled,
+			is_core: $this->is_core,
+			created_by: $this->created_by,
+			id: $this->id,
+			created_at: $this->created_at,
+			updated_at: $this->updated_at,
+		);
+	}
+
+	/**
 	 * Copy with a new sort position.
 	 *
 	 * @param int $priority Sort order.

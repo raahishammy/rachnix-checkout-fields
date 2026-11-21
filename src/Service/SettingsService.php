@@ -47,6 +47,33 @@ final class SettingsService {
 	 */
 	public function update_style( array $changes, int $user_id, bool $can_edit_css ): StyleSettings {
 		$current = $this->settings->style();
+		$updated = $this->prepare_style( $changes, $can_edit_css );
+		$this->settings->save_style( $updated );
+		$this->audit->record( AuditAction::Update, 'settings', 'style', $current->to_array(), $updated->to_array(), $user_id );
+		return $updated;
+	}
+
+	/**
+	 * Puts the style back to its defaults (Follow theme, no custom CSS).
+	 *
+	 * @param int $user_id Acting user.
+	 */
+	public function reset_style( int $user_id ): void {
+		$current = $this->settings->style();
+		$this->settings->save_style( new StyleSettings() );
+		$this->audit->record( AuditAction::Reset, 'settings', 'style', $current->to_array(), ( new StyleSettings() )->to_array(), $user_id );
+	}
+
+	/**
+	 * Validates style changes and returns the result, without saving (also used by import,
+	 * so an invalid style is reported before any field changes are applied).
+	 *
+	 * @param array<string, mixed> $changes      Changes.
+	 * @param bool                 $can_edit_css Whether the user may change custom CSS.
+	 * @throws InvalidFieldInput When a value is not acceptable.
+	 */
+	public function prepare_style( array $changes, bool $can_edit_css ): StyleSettings {
+		$current = $this->settings->style();
 		$errors  = array();
 		$data    = $current->to_array();
 
@@ -113,10 +140,28 @@ final class SettingsService {
 			throw InvalidFieldInput::with( $errors ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- returned as REST JSON, never printed.
 		}
 
-		$updated = StyleSettings::from_array( $data );
-		$this->settings->save_style( $updated );
-		$this->audit->record( AuditAction::Update, 'settings', 'style', $current->to_array(), $updated->to_array(), $user_id );
-		return $updated;
+		return StyleSettings::from_array( $data );
+	}
+
+	/**
+	 * Saves a style already checked by prepare_style() (import).
+	 *
+	 * @param StyleSettings $style   Style.
+	 * @param int           $user_id Acting user.
+	 * @param AuditAction   $action  How it is logged.
+	 */
+	public function save_prepared_style( StyleSettings $style, int $user_id, AuditAction $action ): void {
+		$current = $this->settings->style();
+		$this->settings->save_style( $style );
+		$this->audit->record( $action, 'settings', 'style', $current->to_array(), $style->to_array(), $user_id );
+	}
+
+	public function wizard_completed(): bool {
+		return $this->settings->wizard_completed();
+	}
+
+	public function complete_wizard(): void {
+		$this->settings->complete_wizard();
 	}
 
 	/**

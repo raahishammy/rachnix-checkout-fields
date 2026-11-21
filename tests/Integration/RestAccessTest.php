@@ -50,6 +50,10 @@ final class RestAccessTest extends IntegrationTestCase {
 		'POST /rxcf/v1/settings'                    => array( 'style' => array( 'mode' => 'plugin' ) ),
 		'POST /rxcf/v1/publish'                     => array( 'operations' => array() ),
 		'POST /rxcf/v1/preview'                     => array( 'operations' => array() ),
+		'GET /rxcf/v1/export'                       => array(),
+		'POST /rxcf/v1/import'                      => array( 'file' => array( 'format' => 'rachnix-checkout-fields' ) ),
+		'POST /rxcf/v1/reset-all'                   => array( 'confirm' => true ),
+		'POST /rxcf/v1/wizard/complete'             => array(),
 	);
 
 	private static int $customer = 0;

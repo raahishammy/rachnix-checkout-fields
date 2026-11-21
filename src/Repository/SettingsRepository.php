@@ -48,6 +48,19 @@ final class SettingsRepository {
 	}
 
 	/**
+	 * Whether the store owner has finished (or skipped) the setup wizard.
+	 */
+	public function wizard_completed(): bool {
+		return true === ( $this->all()['wizard_completed'] ?? false );
+	}
+
+	public function complete_wizard(): void {
+		$all                     = $this->all();
+		$all['wizard_completed'] = true;
+		update_option( $this->option, $all, true );
+	}
+
+	/**
 	 * @return array<mixed>
 	 */
 	private function all(): array {

@@ -13,6 +13,7 @@ use Rachnix\CheckoutFields\Checkout\Blocks\BlockFieldSupport;
 use Rachnix\CheckoutFields\Checkout\CheckoutDetector;
 use Rachnix\CheckoutFields\Contracts\Hookable;
 use Rachnix\CheckoutFields\Plugin;
+use Rachnix\CheckoutFields\Repository\SettingsRepository;
 use Rachnix\CheckoutFields\Rest\AbstractController;
 use Rachnix\CheckoutFields\Security\Capabilities;
 
@@ -33,12 +34,14 @@ final class AdminPage implements Hookable {
 	/**
 	 * @param string            $plugin_file Absolute path to the main plugin file.
 	 * @param CheckoutDetector  $detector    Which checkout is in use.
-	 * @param BlockFieldSupport $support     Block checkout type support.
+	 * @param BlockFieldSupport       $support     Block checkout type support.
+	 * @param SettingsRepository|null $settings    Settings (setup wizard state).
 	 */
 	public function __construct(
 		private readonly string $plugin_file,
 		private readonly CheckoutDetector $detector,
 		private readonly BlockFieldSupport $support,
+		private readonly ?SettingsRepository $settings = null,
 	) {}
 
 	public function register(): void {
@@ -90,6 +93,10 @@ final class AdminPage implements Hookable {
 		wp_enqueue_style( 'wp-components' );
 		if ( is_readable( $dir . '/assets/build/index.css' ) ) {
 			wp_enqueue_style( self::SCRIPT_HANDLE, plugins_url( 'assets/build/index.css', $this->plugin_file ), array( 'wp-components' ), $version );
+			// @wordpress/scripts also builds index-rtl.css; WordPress swaps it in for right-to-left languages.
+			if ( is_readable( $dir . '/assets/build/index-rtl.css' ) ) {
+				wp_style_add_data( self::SCRIPT_HANDLE, 'rtl', 'replace' );
+			}
 		}
 	}
 
@@ -106,6 +113,8 @@ final class AdminPage implements Hookable {
 			'usesBlockCheckout' => $this->detector->uses_block_checkout(),
 			'blockDateFields'   => $this->support->date_supported(),
 			'canEditCss'        => current_user_can( 'edit_css' ),
+			'wizardCompleted'   => $this->settings?->wizard_completed() ?? true,
+			'restoreFieldsUrl'  => admin_url( 'admin.php?page=' . self::SLUG ),
 		);
 	}
 

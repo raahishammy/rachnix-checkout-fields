@@ -8,6 +8,8 @@ parameters:
 		- src
 	bootstrapFiles:
 		- vendor/php-stubs/woocommerce-stubs/woocommerce-stubs.php
+	scanFiles:
+		- tests/phpstan/polylang-stubs.php
 	treatPhpDocTypesAsCertain: false
 	# The stubs give WC_VERSION a placeholder value; at runtime it is the installed version.
 	dynamicConstantNames:

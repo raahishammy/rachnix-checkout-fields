@@ -135,6 +135,16 @@ jobs:
           npx wp-env run cli wp plugin activate woocommerce
           npx wp-env run cli wp plugin activate rachnix-checkout-fields
       - run: npx playwright test
+      - name: Generate the translation template
+        if: always()
+        run: npm run make-pot
+      - name: Upload translation template
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: translation-template
+          path: languages/rachnix-checkout-fields.pot
+          retention-days: 14
       - name: Upload Playwright report
         if: failure()
         uses: actions/upload-artifact@v4

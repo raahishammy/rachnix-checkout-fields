@@ -13,6 +13,7 @@ use Rachnix\CheckoutFields\Checkout\Blocks\BlocksCheckoutIntegration;
 use Rachnix\CheckoutFields\Checkout\OrderDataWriter;
 use Rachnix\CheckoutFields\Contracts\FieldRepositoryInterface;
 use Rachnix\CheckoutFields\FieldTypes\FieldTypeRegistry;
+use Rachnix\CheckoutFields\I18n\StringTranslations;
 
 defined( 'ABSPATH' ) || exit;
 
@@ -40,11 +41,13 @@ final class OrderFieldValues {
 	 * @param FieldRepositoryInterface $fields Field definitions.
 	 * @param FieldTypeRegistry        $types  Field types.
 	 * @param OrderDataWriter          $writer Classic storage.
+	 * @param StringTranslations|null  $i18n   Translations of store-owner texts (WPML, Polylang).
 	 */
 	public function __construct(
 		private readonly FieldRepositoryInterface $fields,
 		private readonly FieldTypeRegistry $types,
 		private readonly OrderDataWriter $writer,
+		private readonly ?StringTranslations $i18n = null,
 	) {}
 
 	/**
@@ -59,6 +62,7 @@ final class OrderFieldValues {
 			if ( $field->is_core ) {
 				continue;
 			}
+			$field = $this->i18n?->field( $field ) ?? $field; // Labels and choices in the reader's language.
 
 			$classic = $this->writer->read( $order, $field );
 			if ( '' !== $classic ) {

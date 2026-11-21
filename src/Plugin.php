@@ -10,6 +10,11 @@ declare(strict_types=1);
 namespace Rachnix\CheckoutFields;
 
 use Rachnix\CheckoutFields\Admin\AdminPage;
+use Rachnix\CheckoutFields\I18n\StringTranslations;
+use Rachnix\CheckoutFields\I18n\TextDomain;
+use Rachnix\CheckoutFields\Privacy\PrivacyIntegration;
+use Rachnix\CheckoutFields\Rest\ToolsController;
+use Rachnix\CheckoutFields\Service\ImportExportService;
 use Rachnix\CheckoutFields\Display\BlockFieldVisibility;
 use Rachnix\CheckoutFields\Display\CustomerDisplay;
 use Rachnix\CheckoutFields\Display\EmailDisplay;
@@ -183,11 +188,18 @@ final class Plugin {
 
 		$c->set( PreviewService::class, static fn( Container $c ) => new PreviewService( $c->get( FieldService::class ) ) );
 		$c->set( PreviewMode::class, static fn( Container $c ) => new PreviewMode( $c->get( PreviewService::class ), $c->get( FieldRepository::class ) ) );
-		$c->set( AdminPage::class, fn( Container $c ) => new AdminPage( $this->plugin_file, $c->get( CheckoutDetector::class ), $c->get( BlockFieldSupport::class ) ) );
+		$c->set( AdminPage::class, fn( Container $c ) => new AdminPage( $this->plugin_file, $c->get( CheckoutDetector::class ), $c->get( BlockFieldSupport::class ), $c->get( SettingsRepository::class ) ) );
 
 		$c->set( SettingsRepository::class, static fn() => new SettingsRepository() );
 		$c->set( SettingsService::class, static fn( Container $c ) => new SettingsService( $c->get( SettingsRepository::class ), $c->get( AuditLogRepository::class ) ) );
 		$c->set( CheckoutStyles::class, fn( Container $c ) => new CheckoutStyles( $c->get( SettingsRepository::class ), $this->plugin_file ) );
+
+		$c->set( StringTranslations::class, static fn( Container $c ) => new StringTranslations( $c->get( FieldRepositoryInterface::class ) ) );
+		$c->set( TextDomain::class, fn() => new TextDomain( $this->plugin_file ) );
+		$c->set(
+			ImportExportService::class,
+			static fn( Container $c ) => new ImportExportService( $c->get( FieldService::class ), $c->get( SettingsService::class ), $c->get( AuditLogRepository::class ) )
+		);
 
 		$c->set( OrderDataWriter::class, static fn() => new OrderDataWriter() );
 		$c->set(
@@ -195,7 +207,8 @@ final class Plugin {
 			static fn( Container $c ) => new OrderFieldValues(
 				$c->get( FieldRepositoryInterface::class ),
 				$c->get( FieldTypeRegistry::class ),
-				$c->get( OrderDataWriter::class )
+				$c->get( OrderDataWriter::class ),
+				$c->get( StringTranslations::class )
 			)
 		);
 		$c->set( OrderAdminDisplay::class, static fn( Container $c ) => new OrderAdminDisplay( $c->get( OrderFieldValues::class ), $c->get( FieldRepositoryInterface::class ) ) );
@@ -203,6 +216,7 @@ final class Plugin {
 		$c->set( EmailDisplay::class, static fn( Container $c ) => new EmailDisplay( $c->get( OrderFieldValues::class ) ) );
 		$c->set( BlockFieldVisibility::class, static fn( Container $c ) => new BlockFieldVisibility( $c->get( FieldRepositoryInterface::class ) ) );
 		$c->set( OrderFieldsRest::class, static fn( Container $c ) => new OrderFieldsRest( $c->get( OrderFieldValues::class ) ) );
+		$c->set( PrivacyIntegration::class, static fn( Container $c ) => new PrivacyIntegration( $c->get( OrderFieldValues::class ), $c->get( FieldRepositoryInterface::class ), $c->get( OrderDataWriter::class ) ) );
 
 		$c->set( CheckoutDetector::class, static fn() => new CheckoutDetector() );
 		$c->set( BlockFieldSupport::class, static fn() => new BlockFieldSupport() );
@@ -215,7 +229,8 @@ final class Plugin {
 				$c->get( CheckoutDetector::class ),
 				$c->get( Sanitizer::class ),
 				$c->get( ValidationService::class ),
-				$c->get( Logger::class )
+				$c->get( Logger::class ),
+				$c->get( StringTranslations::class )
 			)
 		);
 		$c->set(
@@ -234,7 +249,8 @@ final class Plugin {
 				$c->get( FieldTypeRegistry::class ),
 				$c->get( Sanitizer::class ),
 				$c->get( ValidationService::class ),
-				$c->get( OrderDataWriter::class )
+				$c->get( OrderDataWriter::class ),
+				$c->get( StringTranslations::class )
 			)
 		);
 
@@ -255,6 +271,7 @@ final class Plugin {
 					new CoreFieldsController( $c->get( FieldService::class ), $c->get( Logger::class ) ),
 					new SettingsController( $c->get( SettingsService::class ), $c->get( Logger::class ) ),
 					new PublishController( $c->get( FieldService::class ), $c->get( PreviewService::class ), $c->get( Logger::class ) ),
+					new ToolsController( $c->get( ImportExportService::class ), $c->get( FieldService::class ), $c->get( SettingsService::class ), $c->get( Logger::class ) ),
 				)
 			)
 		);
@@ -284,6 +301,9 @@ final class Plugin {
 			$this->container->get( EmailDisplay::class ),
 			$this->container->get( BlockFieldVisibility::class ),
 			$this->container->get( OrderFieldsRest::class ),
+			$this->container->get( PrivacyIntegration::class ),
+			$this->container->get( StringTranslations::class ),
+			$this->container->get( TextDomain::class ),
 		);
 	}
 
