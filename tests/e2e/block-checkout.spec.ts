@@ -19,7 +19,8 @@ test.beforeAll( () => {
 async function openCheckout( page: Page ) {
 	await page.goto( `${ store.home_url }?add-to-cart=${ store.product_id }` );
 	await page.goto( store.checkout_url );
-	await expect( page.locator( '.wc-block-checkout' ) ).toBeVisible();
+	// The block root; ".wc-block-checkout" also matches its inner layout element.
+	await expect( page.locator( '[data-block-name="woocommerce/checkout"]' ) ).toBeVisible();
 	await expect( page.getByLabel( 'Email address' ) ).toBeVisible();
 }
 
@@ -68,7 +69,8 @@ test( 'invalid values stop the order with clear messages', async ( { page } ) =>
 
 	await placeOrder( page );
 
-	await expect( page.getByText( 'Other email is not a valid email address.' ) ).toBeVisible();
+	// The block may show the error both in the notice banner and under the field.
+	await expect( page.getByText( 'Other email is not a valid email address.' ).first() ).toBeVisible();
 	await expect( page ).not.toHaveURL( /order-received/ );
 } );
 
