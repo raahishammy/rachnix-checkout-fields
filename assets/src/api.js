@@ -20,7 +20,11 @@ export const getFieldTypes = () => apiFetch( { path: path( '/field-types' ) } );
  * @param {Array<Object>} operations Operations, see FieldService::apply_batch().
  */
 export const publish = ( operations ) =>
-	apiFetch( { path: path( '/publish' ), method: 'POST', data: { operations } } );
+	apiFetch( {
+		path: path( '/publish' ),
+		method: 'POST',
+		data: { operations },
+	} );
 
 /**
  * Validates the draft and returns { url } of the checkout showing it.
@@ -28,4 +32,8 @@ export const publish = ( operations ) =>
  * @param {Array<Object>} operations Operations, see FieldService::apply_batch().
  */
 export const preview = ( operations ) =>
-	apiFetch( { path: path( '/preview' ), method: 'POST', data: { operations } } );
+	apiFetch( {
+		path: path( '/preview' ),
+		method: 'POST',
+		data: { operations },
+	} );

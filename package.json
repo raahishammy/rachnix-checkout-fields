@@ -10,6 +10,7 @@
 		"build": "wp-scripts build assets/src/index.js --output-path=assets/build",
 		"start": "wp-scripts start assets/src/index.js --output-path=assets/build",
 		"lint:js": "wp-scripts lint-js assets/src",
+		"lint:js:fix": "wp-scripts lint-js assets/src --fix",
 		"env:start": "wp-env start",
 		"env:stop": "wp-env stop",
 		"env:setup": "wp-env run cli wp plugin activate woocommerce && wp-env run cli wp plugin activate rachnix-checkout-fields",
@@ -28,6 +29,7 @@
 		"@wordpress/element": "^6.0.0",
 		"@wordpress/env": "^10.0.0",
 		"@wordpress/i18n": "^5.0.0",
-		"@wordpress/scripts": "^30.0.0"
+		"@wordpress/scripts": "^30.0.0",
+		"typescript": "^5.8.0"
 	}
 }

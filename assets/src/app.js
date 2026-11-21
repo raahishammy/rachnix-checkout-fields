@@ -25,7 +25,10 @@ export default function App() {
 					loading: false,
 					error:
 						error?.message ??
-						__( 'Could not load the fields.', 'rachnix-checkout-fields' ),
+						__(
+							'Could not load the fields.',
+							'rachnix-checkout-fields'
+						),
 					sections: [],
 					fields: [],
 				} )
@@ -52,7 +55,9 @@ export default function App() {
 					<h2>{ section.label }</h2>
 					<ul>
 						{ state.fields
-							.filter( ( field ) => field.section === section.key )
+							.filter(
+								( field ) => field.section === section.key
+							)
 							.map( ( field ) => (
 								<li key={ field.uuid }>
 									{ field.label || field.key }{ ' ' }
