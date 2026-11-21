@@ -78,6 +78,12 @@ $rxcf_page_id = $rxcf_page instanceof WP_Post ? $rxcf_page->ID : wp_insert_post(
 update_option( 'woocommerce_checkout_page_id', $rxcf_page_id );
 delete_transient( 'rxcf_uses_block_checkout' ); // The plugin re-detects the checkout on the next request.
 
+// The setup wizard is done, so tests open the editor; `setup.php classic wizard` leaves it pending.
+$rxcf_settings                     = get_option( 'rxcf_settings', array() );
+$rxcf_settings                     = is_array( $rxcf_settings ) ? $rxcf_settings : array();
+$rxcf_settings['wizard_completed'] = 'wizard' !== ( $args[1] ?? '' );
+update_option( 'rxcf_settings', $rxcf_settings, true );
+
 // A virtual product, so no shipping method is needed.
 $rxcf_products = wc_get_products(
 	array(

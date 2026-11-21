@@ -16,6 +16,32 @@ export const getFieldTypes = () => apiFetch( { path: path( '/field-types' ) } );
 
 export const getSettings = () => apiFetch( { path: path( '/settings' ) } );
 
+export const exportFile = () => apiFetch( { path: path( '/export' ) } );
+
+/**
+ * Previews (apply false) or imports (apply true) an export file.
+ *
+ * @param {Object}  file            Parsed export file.
+ * @param {boolean} apply           Import instead of previewing.
+ * @param {boolean} confirmUnsigned The owner accepted an unsigned file.
+ */
+export const importFile = ( file, apply = false, confirmUnsigned = false ) =>
+	apiFetch( {
+		path: path( '/import' ),
+		method: 'POST',
+		data: { file, apply, confirm_unsigned: confirmUnsigned },
+	} );
+
+export const resetAll = () =>
+	apiFetch( {
+		path: path( '/reset-all' ),
+		method: 'POST',
+		data: { confirm: true },
+	} );
+
+export const completeWizard = () =>
+	apiFetch( { path: path( '/wizard/complete' ), method: 'POST' } );
+
 /**
  * @param {Object} style Changed style settings.
  */
