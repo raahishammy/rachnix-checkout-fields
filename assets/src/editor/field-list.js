@@ -145,6 +145,58 @@ export default function FieldList( {
 		} )
 	);
 
+	// Screen-reader announcements by field title (dnd-kit's defaults read out internal ids).
+	const titleOf = ( id ) => {
+		const item = items.find( ( entry ) => entry.id === id );
+		return item ? itemTitle( item ) : '';
+	};
+	const announcements = {
+		onDragStart: ( { active } ) =>
+			sprintf(
+				/* translators: %s: field label. */
+				__( 'Picked up %s.', 'rachnix-checkout-fields' ),
+				titleOf( active.id )
+			),
+		onDragOver: ( { active, over } ) =>
+			over
+				? sprintf(
+						/* translators: 1: moved field label, 2: label of the field it is over. */
+						__( '%1$s is over %2$s.', 'rachnix-checkout-fields' ),
+						titleOf( active.id ),
+						titleOf( over.id )
+				  )
+				: sprintf(
+						/* translators: %s: field label. */
+						__(
+							'%s is no longer over a field.',
+							'rachnix-checkout-fields'
+						),
+						titleOf( active.id )
+				  ),
+		onDragEnd: ( { active, over } ) =>
+			over
+				? sprintf(
+						/* translators: 1: moved field label, 2: label of the field it took the place of. */
+						__(
+							'%1$s was dropped at the place of %2$s.',
+							'rachnix-checkout-fields'
+						),
+						titleOf( active.id ),
+						titleOf( over.id )
+				  )
+				: sprintf(
+						/* translators: %s: field label. */
+						__( '%s was dropped.', 'rachnix-checkout-fields' ),
+						titleOf( active.id )
+				  ),
+		onDragCancel: ( { active } ) =>
+			sprintf(
+				/* translators: %s: field label. */
+				__( 'Moving %s was cancelled.', 'rachnix-checkout-fields' ),
+				titleOf( active.id )
+			),
+	};
+
 	const onDragEnd = ( { active, over } ) => {
 		if ( over && active.id !== over.id ) {
 			onMove( active.id, over.id );
@@ -172,6 +224,7 @@ export default function FieldList( {
 					collisionDetection={ closestCenter }
 					onDragEnd={ onDragEnd }
 					accessibility={ {
+						announcements,
 						screenReaderInstructions: {
 							draggable: __(
 								'To move a field, press Space or Enter, move it with the arrow keys, then press Space or Enter again to drop it. Press Escape to cancel.',

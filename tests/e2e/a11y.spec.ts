@@ -91,15 +91,30 @@ test( 'fields can be reordered with the keyboard only', async ( { page } ) => {
 	const first = ( await titles.nth( 0 ).innerText() ).trim();
 	const second = ( await titles.nth( 1 ).innerText() ).trim();
 
-	// Wait for each stage: dnd-kit picks the item up, moves it over the next one, then drops it.
-	// Its screen-reader live region (role status, id DndLiveRegion-*) announces every step.
+	// Wait for each stage through the screen-reader live region (id DndLiveRegion-*), which
+	// announces by field title: "Picked up A.", "A is over B.", then the drop.
+	// When the page can scroll, dnd-kit may spend an ArrowDown scrolling the window instead
+	// of moving, so press again (at most three times) until the field is over the next one.
 	const announcer = page.locator( '[id^="DndLiveRegion"]' );
-	await page.getByRole( 'button', { name: `Move ${ first }` } ).focus();
+	const handle = page.getByRole( 'button', { name: `Move ${ first }` } );
+	await handle.evaluate( ( el ) => el.scrollIntoView( { block: 'center' } ) );
+	await handle.focus();
 	await page.keyboard.press( 'Space' );
 	await expect( page.locator( '.rxcf-fields__row.is-dragging' ) ).toHaveCount( 1 );
-	await page.keyboard.press( 'ArrowDown' );
-	await expect( announcer ).toContainText( 'moved over' );
+	await expect( announcer ).toContainText( `Picked up ${ first }` );
+	const over = `${ first } is over ${ second }`;
+	for ( let press = 0; press < 3; press++ ) {
+		await page.keyboard.press( 'ArrowDown' );
+		const moved = await expect( announcer )
+			.toContainText( over, { timeout: 1500 } )
+			.then( () => true, () => false );
+		if ( moved ) {
+			break;
+		}
+	}
+	await expect( announcer ).toContainText( over );
 	await page.keyboard.press( 'Space' );
+	await expect( announcer ).toContainText( `${ first } was dropped` );
 
 	await expect( titles.nth( 0 ) ).toHaveText( second );
 	await expect( titles.nth( 1 ) ).toHaveText( first );
