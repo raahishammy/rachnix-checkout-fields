@@ -210,7 +210,8 @@ final class PublishTest extends IntegrationTestCase {
 		$mode->maybe_activate();
 		$this->assertTrue( $mode->is_active() );
 		$this->assertSame( array( 'gift_note' ), array_map( static fn( $f ) => $f->key, $this->repository->all()->to_list() ) );
-		$this->assertStringContainsString( 'Orders cannot be placed', $mode->order_button() );
+		$this->assertStringContainsString( 'Orders cannot be placed', $mode->banner() );
+		$this->assertNotFalse( has_action( 'wp_body_open', array( $mode, 'print_banner' ) ) );
 	}
 
 	public function test_preview_can_hide_a_woocommerce_field(): void {

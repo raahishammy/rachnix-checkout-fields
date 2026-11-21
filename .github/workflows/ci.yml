@@ -95,7 +95,8 @@ jobs:
             }
           }
           EOF
-      - run: npx --yes @wordpress/env@10 start
+      - name: Start wp-env (retried once: MySQL is sometimes not ready in time)
+        run: npx --yes @wordpress/env@10 start || (sleep 15 && npx --yes @wordpress/env@10 start)
       - name: Activate on single site
         run: |
           npx @wordpress/env@10 run cli wp plugin activate woocommerce
@@ -127,7 +128,8 @@ jobs:
       - run: npm ci
       - run: npx playwright install --with-deps chromium
       - run: npm run build
-      - run: npx wp-env start
+      - name: Start wp-env (retried once: MySQL is sometimes not ready in time)
+        run: npx wp-env start || (sleep 15 && npx wp-env start)
       - name: Activate plugins (WooCommerce first)
         run: |
           npx wp-env run cli wp plugin activate woocommerce
@@ -161,7 +163,8 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npx playwright install --with-deps chromium
-      - run: npx wp-env start
+      - name: Start wp-env (retried once: MySQL is sometimes not ready in time)
+        run: npx wp-env start || (sleep 15 && npx wp-env start)
       - name: Activate plugins (WooCommerce first)
         run: |
           npx wp-env run cli wp plugin activate woocommerce

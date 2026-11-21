@@ -20,12 +20,14 @@ defined( 'ABSPATH' ) || exit;
  * On a front-end request with ?rxcf_preview=1, a valid nonce and the capability, the field
  * repository serves the user's draft for that request only, so both checkouts render it.
  * Customers never see drafts: no nonce, no capability, no preview. In preview the checkout
- * renders even with an empty cart, the admin bar is hidden, and the order button is replaced.
- * (The admin screen also shows the frame as inert, so nothing can be submitted from it.)
+ * renders even with an empty cart, the admin bar is hidden, and a banner says orders cannot
+ * be placed. (The admin screen shows the frame as inert, so nothing can be submitted from it.)
  */
 final class PreviewMode implements Hookable {
 
 	private bool $active = false;
+
+	private bool $banner_printed = false;
 
 	/**
 	 * @param PreviewService  $previews   Draft previews.
@@ -70,11 +72,28 @@ final class PreviewMode implements Hookable {
 
 		add_filter( 'woocommerce_checkout_redirect_empty_cart', '__return_false' );
 		add_filter( 'show_admin_bar', '__return_false' );
-		add_filter( 'woocommerce_order_button_html', array( $this, 'order_button' ) );
+		// A banner at the top of the page, not a replaced order button: WooCommerce reloads the
+		// payment area in a background request without the preview link, which would undo it.
+		add_action( 'wp_body_open', array( $this, 'print_banner' ) );
+		add_action( 'woocommerce_before_checkout_form', array( $this, 'print_banner' ), 1 );
 		nocache_headers();
 	}
 
-	public function order_button(): string {
-		return '<p class="rxcf-preview-note"><strong>' . esc_html__( 'Preview of your unpublished changes. Orders cannot be placed here.', 'rachnix-checkout-fields' ) . '</strong></p>';
+	/**
+	 * Prints the preview banner once (wp_body_open where the theme supports it, otherwise above
+	 * the classic checkout form).
+	 */
+	public function print_banner(): void {
+		if ( $this->banner_printed ) {
+			return;
+		}
+		$this->banner_printed = true;
+		echo $this->banner(); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- banner() escapes its text.
+	}
+
+	public function banner(): string {
+		return '<div class="rxcf-preview-note" role="status" style="margin:0;padding:.75em 1em;background:#fcf9e8;border-bottom:1px solid #dba617;font:600 14px/1.4 sans-serif;color:#1d2327">'
+			. esc_html__( 'Preview of your unpublished changes. Orders cannot be placed here.', 'rachnix-checkout-fields' )
+			. '</div>';
 	}
 }
