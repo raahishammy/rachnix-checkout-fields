@@ -2,6 +2,7 @@
  * Shared helpers for the end-to-end tests.
  */
 import { execFileSync } from 'node:child_process';
+import { expect, type Page } from '@playwright/test';
 
 const PLUGIN = 'wp-content/plugins/rachnix-checkout-fields';
 
@@ -13,6 +14,38 @@ export type Store = {
 	mode: 'classic' | 'blocks';
 	date_supported: boolean;
 };
+
+/** Logs in as wp-env's administrator (admin / password). */
+export async function logInAsAdmin( page: Page, store: Store ) {
+	await page.goto( `${ store.home_url }wp-login.php` );
+	await page.fill( '#user_login', 'admin' );
+	await page.fill( '#user_pass', 'password' );
+	await page.click( '#wp-submit' );
+	await page.waitForURL( /wp-admin/ );
+}
+
+/**
+ * Checks the places a placed order's values show for the store: the order screen (HPOS) and
+ * the orders list column (the VAT field has "Column in the orders list" on in setup.php).
+ *
+ * @param page    Page.
+ * @param store   Store from setup.php.
+ * @param orderId Order id.
+ * @param values  Texts that must appear on the order screen.
+ */
+export async function expectValuesForStore( page: Page, store: Store, orderId: string, values: string[] ) {
+	await logInAsAdmin( page, store );
+
+	await page.goto( `${ store.home_url }wp-admin/admin.php?page=wc-orders&action=edit&id=${ orderId }` );
+	const screen = await page.content();
+	for ( const value of values ) {
+		expect( screen, `order screen shows ${ value }` ).toContain( value );
+	}
+
+	await page.goto( `${ store.home_url }wp-admin/admin.php?page=wc-orders` );
+	await expect( page.locator( 'th#rxcf_rx_vat, th.column-rxcf_rx_vat' ).first() ).toContainText( 'VAT number' );
+	await expect( page.locator( `tr#order-${ orderId } td.column-rxcf_rx_vat, tr:has(a[href*="id=${ orderId }"]) td.column-rxcf_rx_vat` ).first() ).toContainText( 'GB123456' );
+}
 
 /** Runs a PHP script inside wp-env and returns its `RXCF_E2E {json}` result line. */
 export function wpEvalFile< T >( file: string, ...args: string[] ): T {

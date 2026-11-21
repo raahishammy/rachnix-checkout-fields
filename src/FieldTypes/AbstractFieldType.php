@@ -61,6 +61,25 @@ abstract class AbstractFieldType implements FieldTypeInterface {
 		return array();
 	}
 
+	public function format_value( string $value, Field $field ): string {
+		return $value;
+	}
+
+	/**
+	 * For choice types: the chosen option's label, or the raw value if the option was removed since.
+	 *
+	 * @param string $value Stored value.
+	 * @param Field  $field Field definition.
+	 */
+	protected function choice_label( string $value, Field $field ): string {
+		foreach ( $field->settings->options as $option ) {
+			if ( $option->value === $value ) {
+				return $option->label;
+			}
+		}
+		return $value;
+	}
+
 	/**
 	 * Strings and numbers pass through; arrays, objects, booleans and null become ''.
 	 * Tampered requests such as `field[]=x` therefore never reach a sanitiser.

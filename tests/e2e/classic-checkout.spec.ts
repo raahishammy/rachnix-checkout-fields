@@ -3,7 +3,7 @@
  * Runs against wp-env (see .github/workflows/ci.yml, job "e2e").
  */
 import { test, expect, type Page } from '@playwright/test';
-import { wpEvalFile, type Store } from './helpers';
+import { expectValuesForStore, wpEvalFile, type Store } from './helpers';
 
 let store: Store;
 
@@ -127,4 +127,14 @@ test( 'an order with every field type is placed and every value is saved', async
 		_rxcf_rx_vat: 'GB123456',
 		_rxcf_rx_wrap: 'box',
 	} );
+
+	// Step 9: where the values show.
+	const thankYou = page.locator( '.rxcf-fields-table' );
+	await expect( thankYou ).toContainText( 'GB123456' );
+	await expect( thankYou ).toContainText( 'Pm', { useInnerText: true } ); // Choice label, not its value.
+	await expect( thankYou ).toContainText( '••••' ); // Password-type value masked for customers.
+	await expect( thankYou ).not.toContainText( '1234' );
+	await expect( thankYou ).not.toContainText( 'e2e' ); // Hidden field: store only.
+
+	await expectValuesForStore( page, store, orderId as string, [ 'GB123456', 'Leave at door', '1234' ] );
 } );

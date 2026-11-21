@@ -10,6 +10,12 @@ declare(strict_types=1);
 namespace Rachnix\CheckoutFields;
 
 use Rachnix\CheckoutFields\Admin\AdminPage;
+use Rachnix\CheckoutFields\Display\BlockFieldVisibility;
+use Rachnix\CheckoutFields\Display\CustomerDisplay;
+use Rachnix\CheckoutFields\Display\EmailDisplay;
+use Rachnix\CheckoutFields\Display\OrderAdminDisplay;
+use Rachnix\CheckoutFields\Display\OrderFieldValues;
+use Rachnix\CheckoutFields\Rest\OrderFieldsRest;
 use Rachnix\CheckoutFields\Admin\BlockCheckoutNotice;
 use Rachnix\CheckoutFields\Checkout\PreviewMode;
 use Rachnix\CheckoutFields\Rest\PublishController;
@@ -184,6 +190,20 @@ final class Plugin {
 		$c->set( CheckoutStyles::class, fn( Container $c ) => new CheckoutStyles( $c->get( SettingsRepository::class ), $this->plugin_file ) );
 
 		$c->set( OrderDataWriter::class, static fn() => new OrderDataWriter() );
+		$c->set(
+			OrderFieldValues::class,
+			static fn( Container $c ) => new OrderFieldValues(
+				$c->get( FieldRepositoryInterface::class ),
+				$c->get( FieldTypeRegistry::class ),
+				$c->get( OrderDataWriter::class )
+			)
+		);
+		$c->set( OrderAdminDisplay::class, static fn( Container $c ) => new OrderAdminDisplay( $c->get( OrderFieldValues::class ), $c->get( FieldRepositoryInterface::class ) ) );
+		$c->set( CustomerDisplay::class, static fn( Container $c ) => new CustomerDisplay( $c->get( OrderFieldValues::class ) ) );
+		$c->set( EmailDisplay::class, static fn( Container $c ) => new EmailDisplay( $c->get( OrderFieldValues::class ) ) );
+		$c->set( BlockFieldVisibility::class, static fn( Container $c ) => new BlockFieldVisibility( $c->get( FieldRepositoryInterface::class ) ) );
+		$c->set( OrderFieldsRest::class, static fn( Container $c ) => new OrderFieldsRest( $c->get( OrderFieldValues::class ) ) );
+
 		$c->set( CheckoutDetector::class, static fn() => new CheckoutDetector() );
 		$c->set( BlockFieldSupport::class, static fn() => new BlockFieldSupport() );
 		$c->set(
@@ -259,6 +279,11 @@ final class Plugin {
 			$this->container->get( CheckoutStyles::class ),
 			$this->container->get( PreviewMode::class ),
 			$this->container->get( AdminPage::class ),
+			$this->container->get( OrderAdminDisplay::class ),
+			$this->container->get( CustomerDisplay::class ),
+			$this->container->get( EmailDisplay::class ),
+			$this->container->get( BlockFieldVisibility::class ),
+			$this->container->get( OrderFieldsRest::class ),
 		);
 	}
 

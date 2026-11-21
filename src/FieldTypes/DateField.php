@@ -57,4 +57,20 @@ final class DateField extends AbstractFieldType {
 		}
 		return array( new ValidationError( $field->key, ValidationErrorCode::InvalidDate ) );
 	}
+
+	/**
+	 * In the store's date format (Settings > General), e.g. "24 December 2026".
+	 *
+	 * @param string $value Stored value, YYYY-MM-DD.
+	 * @param Field  $field Field definition.
+	 */
+	public function format_value( string $value, Field $field ): string {
+		$date = \DateTimeImmutable::createFromFormat( '!Y-m-d', $value, wp_timezone() );
+		if ( false === $date ) {
+			return $value;
+		}
+		$format = get_option( 'date_format' );
+		$text   = wp_date( is_string( $format ) && '' !== $format ? $format : 'Y-m-d', $date->getTimestamp() );
+		return is_string( $text ) ? $text : $value;
+	}
 }

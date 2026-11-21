@@ -56,4 +56,14 @@ final class CheckboxField extends AbstractFieldType {
 	public function value_errors( string $value, Field $field ): array {
 		return '1' === $value ? array() : array( new ValidationError( $field->key, ValidationErrorCode::InvalidChoice ) );
 	}
+
+	/**
+	 * "Yes" or "No". The block checkout stores ticked boxes as "1" too.
+	 *
+	 * @param string $value Stored value.
+	 * @param Field  $field Field definition.
+	 */
+	public function format_value( string $value, Field $field ): string {
+		return '1' === $value ? __( 'Yes', 'rachnix-checkout-fields' ) : __( 'No', 'rachnix-checkout-fields' );
+	}
 }

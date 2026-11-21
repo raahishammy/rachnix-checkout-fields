@@ -24,6 +24,17 @@
 	<rule ref="WordPress.Security"/>
 	<rule ref="PHPCompatibilityWP"/>
 
+	<!-- WooCommerce's capabilities and our own (granted at runtime by Security\Capabilities). -->
+	<rule ref="WordPress.WP.Capabilities">
+		<properties>
+			<property name="custom_capabilities" type="array">
+				<element value="manage_woocommerce"/>
+				<element value="edit_shop_orders"/>
+				<element value="rxcf_manage_fields"/>
+			</property>
+		</properties>
+	</rule>
+
 	<rule ref="WordPress.WP.I18n">
 		<properties>
 			<property name="text_domain" type="array">

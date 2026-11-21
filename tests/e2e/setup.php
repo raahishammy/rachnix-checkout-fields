@@ -120,7 +120,17 @@ $rxcf_choices = static fn( string ...$values ): array => array_map(
 
 // One field of every free type.
 $rxcf_fields = array(
-	array( 'billing', 'rx_vat', 'text', 'VAT number', array( 'required' => true ) ),
+	array(
+		'billing',
+		'rx_vat',
+		'text',
+		'VAT number',
+		array(
+			'required' => true,
+			// Shown as a column in the orders list (checked by expectValuesForStore()).
+			'display'  => array( 'order_list' => true ),
+		),
+	),
 	array( 'billing', 'rx_alt_email', 'email', 'Other email', array() ),
 	array( 'billing', 'rx_mobile', 'phone', 'Second phone', array() ),
 	array( 'billing', 'rx_source', 'hidden', 'Source', array( 'default' => 'e2e' ) ),

@@ -6,7 +6,7 @@
  * admin notice lists them (covered by tests/Integration/BlocksCheckoutTest.php).
  */
 import { test, expect, type Page } from '@playwright/test';
-import { wpEvalFile, type Store } from './helpers';
+import { expectValuesForStore, wpEvalFile, type Store } from './helpers';
 
 let store: Store;
 
@@ -98,4 +98,11 @@ test( 'an order is placed and every shown field is saved by WooCommerce', async 
 		expect( meta[ '_wc_other/rachnix/rx_date' ] ).toBe( '2026-12-24' );
 	}
 	expect( Object.keys( meta ).filter( ( key ) => key.startsWith( '_rxcf_' ) ), 'The classic checkout code stayed out of it.' ).toEqual( [] );
+
+	// Step 9: WooCommerce shows block checkout values itself, following our "Show in" switches.
+	const confirmation = page.locator( 'main' );
+	await expect( confirmation ).toContainText( 'GB123456' );
+	await expect( confirmation ).toContainText( 'Pm' ); // Choice label, not its value.
+
+	await expectValuesForStore( page, store, orderId as string, [ 'GB123456' ] );
 } );

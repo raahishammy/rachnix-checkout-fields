@@ -45,4 +45,12 @@ final class SelectField extends AbstractFieldType {
 	public function value_errors( string $value, Field $field ): array {
 		return $this->choice_errors( $value, $field );
 	}
+
+	/**
+	 * @param string $value Stored value.
+	 * @param Field  $field Field definition.
+	 */
+	public function format_value( string $value, Field $field ): string {
+		return $this->choice_label( $value, $field );
+	}
 }

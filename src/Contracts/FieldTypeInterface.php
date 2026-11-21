@@ -93,4 +93,13 @@ interface FieldTypeInterface {
 	 * @return list<ValidationError>
 	 */
 	public function value_errors( string $value, Field $field ): array;
+
+	/**
+	 * A stored value as people should read it (e.g. a choice's label instead of its value).
+	 * Plain text: callers escape it for their output.
+	 *
+	 * @param string $value Stored value.
+	 * @param Field  $field Field definition.
+	 */
+	public function format_value( string $value, Field $field ): string;
 }
