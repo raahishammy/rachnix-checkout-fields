@@ -24,6 +24,9 @@ async function logIn( page: Page ) {
 	await page.waitForURL( /wp-admin/ );
 }
 
+// Notices are scoped to '.components-notice': WordPress also copies their text into a hidden
+// screen-reader live region, so a page-wide getByText() would find it twice.
+
 async function openEditor( page: Page ) {
 	await page.goto( `${ store.home_url }wp-admin/admin.php?page=rxcf-checkout-fields` );
 	await expect( page.getByRole( 'button', { name: 'Publish changes' } ) ).toBeVisible();
@@ -45,9 +48,10 @@ test( 'a first-time owner adds a field and sees it on the checkout in under 2 mi
 	await page.getByRole( 'button', { name: 'Text', exact: true } ).click();
 	await page.getByLabel( 'Label', { exact: true } ).fill( 'Gift message' );
 
-	await expect( page.getByRole( 'status' ) ).toContainText( 'unpublished change' );
+	// Our status bar (drag and drop adds its own role="status" live region for screen readers).
+	await expect( page.locator( '.rxcf-editor__status' ) ).toContainText( 'unpublished change' );
 	await page.getByRole( 'button', { name: 'Publish changes' } ).click();
-	await expect( page.getByText( 'Your changes are live on the checkout.' ) ).toBeVisible();
+	await expect( page.locator( '.components-notice' ).getByText( 'Your changes are live on the checkout.' ) ).toBeVisible();
 
 	expect( await checkoutHasLabel( page, 'Gift message' ) ).toBeGreaterThan( 0 );
 	expect( Date.now() - started, 'Under 2 minutes' ).toBeLessThan( 120_000 );
@@ -65,7 +69,7 @@ test( 'nothing is live before publishing, and undo takes a change back', async (
 	expect( await checkoutHasLabel( page, 'Draft only field' ) ).toBe( 0 );
 
 	await openEditor( page );
-	await expect( page.getByText( 'Your unpublished changes from last time were restored.' ) ).toBeVisible();
+	await expect( page.locator( '.components-notice' ).getByText( 'Your unpublished changes from last time were restored.' ) ).toBeVisible();
 	await page.getByRole( 'button', { name: 'Additional information' } ).click();
 	await expect( page.getByText( 'Draft only field' ) ).toBeVisible();
 
