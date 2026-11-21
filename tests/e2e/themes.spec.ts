@@ -49,10 +49,14 @@ async function layoutProblems( page: Page ): Promise< string[] > {
 			)
 		)
 			.filter( ( el ) => ! el.classList.contains( 'select2-hidden-accessible' ) )
+			// Deliberately hidden controls, e.g. the block checkout parks "Apartment, suite"
+			// off-screen (for autofill) until "+ Add apartment" is clicked.
+			.filter( ( el ) => ! el.closest( '[aria-hidden="true"]' ) )
 			.filter( ( el ) => {
 				const style = getComputedStyle( el );
 				const box = el.getBoundingClientRect();
-				return style.display !== 'none' && style.visibility !== 'hidden' && box.width > 1 && box.height > 1;
+				const entirelyOffScreen = box.right <= 0 || box.left >= width;
+				return style.display !== 'none' && style.visibility !== 'hidden' && box.width > 1 && box.height > 1 && ! entirelyOffScreen;
 			} )
 			.map( ( el ) => ( {
 				name: el.getAttribute( 'name' ) || el.id || el.tagName.toLowerCase(),
@@ -61,8 +65,10 @@ async function layoutProblems( page: Page ): Promise< string[] > {
 			} ) );
 
 		for ( const c of controls ) {
+			// Partly visible but running past the edge. (A control pushed wholly off-screen by a
+			// real break makes the page scroll sideways, which the first check reports.)
 			if ( c.box.left < -1 || c.box.right > width + 1 ) {
-				problems.push( `${ c.name} is cut off at the screen edge` );
+				problems.push( `${ c.name } is cut off at the screen edge` );
 			}
 			if ( c.textLike && c.box.width < 60 ) {
 				problems.push( `${ c.name } is only ${ Math.round( c.box.width ) }px wide` );
