@@ -13,6 +13,10 @@ use Rachnix\CheckoutFields\Admin\BlockCheckoutNotice;
 use Rachnix\CheckoutFields\Checkout\Blocks\BlockFieldSupport;
 use Rachnix\CheckoutFields\Checkout\Blocks\BlocksCheckoutIntegration;
 use Rachnix\CheckoutFields\Checkout\CheckoutDetector;
+use Rachnix\CheckoutFields\Checkout\CheckoutStyles;
+use Rachnix\CheckoutFields\Repository\SettingsRepository;
+use Rachnix\CheckoutFields\Rest\SettingsController;
+use Rachnix\CheckoutFields\Service\SettingsService;
 use Rachnix\CheckoutFields\Checkout\Classic\ClassicCheckoutIntegration;
 use Rachnix\CheckoutFields\Checkout\OrderDataWriter;
 use Rachnix\CheckoutFields\Checkout\WooCoreFieldCatalog;
@@ -165,6 +169,10 @@ final class Plugin {
 			)
 		);
 
+		$c->set( SettingsRepository::class, static fn() => new SettingsRepository() );
+		$c->set( SettingsService::class, static fn( Container $c ) => new SettingsService( $c->get( SettingsRepository::class ), $c->get( AuditLogRepository::class ) ) );
+		$c->set( CheckoutStyles::class, fn( Container $c ) => new CheckoutStyles( $c->get( SettingsRepository::class ), $this->plugin_file ) );
+
 		$c->set( OrderDataWriter::class, static fn() => new OrderDataWriter() );
 		$c->set( CheckoutDetector::class, static fn() => new CheckoutDetector() );
 		$c->set( BlockFieldSupport::class, static fn() => new BlockFieldSupport() );
@@ -215,6 +223,7 @@ final class Plugin {
 					),
 					new SectionsController( $c->get( FieldService::class ), $c->get( Logger::class ) ),
 					new CoreFieldsController( $c->get( FieldService::class ), $c->get( Logger::class ) ),
+					new SettingsController( $c->get( SettingsService::class ), $c->get( Logger::class ) ),
 				)
 			)
 		);
@@ -236,6 +245,7 @@ final class Plugin {
 			$this->container->get( CheckoutDetector::class ),
 			$this->container->get( BlocksCheckoutIntegration::class ),
 			$this->container->get( BlockCheckoutNotice::class ),
+			$this->container->get( CheckoutStyles::class ),
 		);
 	}
 

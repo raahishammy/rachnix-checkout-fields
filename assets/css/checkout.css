@@ -1,0 +1,25 @@
+/* Rachnix Checkout Field Editor. Rules are wrapped in :where() so every theme rule wins,
+   except Custom mode (body.rxcf-style-custom), where the store owner chose to override. */
+:root{--rxcf-accent:var(--wp--preset--color--primary,var(--wp--preset--color--accent,#2271b1));--rxcf-radius:4px;--rxcf-gap:1em;--rxcf-border:color-mix(in srgb,currentColor 35%,transparent)}
+
+/* Layout, every mode */
+:where(.rxcf-field) :where(input,select,textarea){font:inherit;color:inherit;max-width:100%;box-sizing:border-box}
+:where(.rxcf-field) :where(input[type=date],input[type=number],textarea,select){width:100%}
+:where(.rxcf-field-textarea textarea){min-height:6em;resize:vertical}
+:where(.rxcf-field-hidden){display:none}
+:where(.rxcf-field-radio label.radio){display:inline-flex;align-items:center;margin-inline:.35em 1.25em;font-weight:inherit}
+:where(.rxcf-field-checkbox label.checkbox){display:inline-flex;align-items:flex-start;gap:.5em}
+
+/* Plugin style: a complete look for themes with weak form styling */
+:where(.rxcf-style-plugin .woocommerce-checkout .form-row){margin-block-end:var(--rxcf-gap)}
+:where(.rxcf-style-plugin .woocommerce-checkout .form-row>label){display:block;margin-block-end:.3em;font-weight:600}
+:where(.rxcf-style-plugin .woocommerce-checkout .form-row :is(input.input-text,select,textarea)){width:100%;padding:.6em .75em;border:1px solid var(--rxcf-border);border-radius:var(--rxcf-radius);background:transparent;line-height:1.4}
+:where(.rxcf-style-plugin .woocommerce-checkout .form-row :is(input,select,textarea):focus){outline:2px solid var(--rxcf-accent);outline-offset:1px;border-color:var(--rxcf-accent)}
+:where(.rxcf-style-plugin :is(.woocommerce-checkout,.wc-block-checkout) :is(input[type=checkbox],input[type=radio])){accent-color:var(--rxcf-accent)}
+
+/* Custom: the store owner's four settings, deliberately stronger than theme rules */
+body.rxcf-style-custom .woocommerce-checkout .form-row{margin-bottom:var(--rxcf-gap)}
+body.rxcf-style-custom .woocommerce-checkout .form-row :is(input.input-text,select,textarea),body.rxcf-style-custom .wc-block-checkout :is(.wc-block-components-text-input input,.wc-blocks-components-select select,.wc-block-components-textarea){border-radius:var(--rxcf-radius)}
+body.rxcf-style-custom :is(.woocommerce-checkout .form-row,.wc-block-checkout) :is(input,select,textarea):focus{outline:2px solid var(--rxcf-accent);outline-offset:1px;border-color:var(--rxcf-accent)}
+body.rxcf-style-custom :is(.woocommerce-checkout,.wc-block-checkout) :is(input[type=checkbox],input[type=radio]){accent-color:var(--rxcf-accent)}
+@media (min-width:768px){body.rxcf-labels-side .woocommerce-checkout .form-row-wide:not(.rxcf-field-checkbox,.rxcf-field-hidden,.rxcf-field-radio){display:grid;grid-template-columns:minmax(8em,30%) 1fr;column-gap:1em;align-items:center}body.rxcf-labels-side .woocommerce-checkout .form-row-wide>label{margin:0}}

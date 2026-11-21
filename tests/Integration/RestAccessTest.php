@@ -46,6 +46,8 @@ final class RestAccessTest extends IntegrationTestCase {
 		'POST /rxcf/v1/sections/{section}/reset'    => array( 'confirm' => true ),
 		'GET /rxcf/v1/core-fields'                  => array(),
 		'POST /rxcf/v1/core-fields/{section}/{key}' => array( 'enabled' => false ),
+		'GET /rxcf/v1/settings'                     => array(),
+		'POST /rxcf/v1/settings'                    => array( 'style' => array( 'mode' => 'plugin' ) ),
 	);
 
 	private static int $customer = 0;

@@ -4,6 +4,8 @@ on:
   push:
     branches: [main]
   pull_request:
+  # Manual runs from the Actions tab ("Run workflow").
+  workflow_dispatch:
 
 permissions:
   contents: read
@@ -139,3 +141,42 @@ jobs:
             playwright-report/
             test-results/
           retention-days: 7
+
+  themes:
+    # Screenshots and layout checks on the 7 themes the spec names. Heavier than the
+    # other jobs, so it runs on pushes to main and manual runs, not on pull requests.
+    if: github.event_name != 'pull_request'
+    name: Theme check (${{ matrix.theme }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        theme: [storefront, astra, kadence, blocksy, generatepress, hello-elementor, twentytwentyfive]
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - run: npx wp-env start
+      - name: Activate plugins (WooCommerce first)
+        run: |
+          npx wp-env run cli wp plugin activate woocommerce
+          npx wp-env run cli wp plugin activate rachnix-checkout-fields
+      - name: Install and activate ${{ matrix.theme }}
+        run: |
+          npx wp-env run cli bash -c 'wp theme is-installed ${{ matrix.theme }} || wp theme install ${{ matrix.theme }}; wp theme activate ${{ matrix.theme }}'
+      - run: npx playwright test tests/e2e/themes.spec.ts
+        env:
+          RXCF_THEME: ${{ matrix.theme }}
+      - name: Upload screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: theme-screenshots-${{ matrix.theme }}
+          path: |
+            test-results/themes/
+            test-results/**/*.png
+          retention-days: 14
