@@ -79,9 +79,14 @@ test( 'fields can be reordered with the keyboard only', async ( { page } ) => {
 	const first = ( await titles.nth( 0 ).innerText() ).trim();
 	const second = ( await titles.nth( 1 ).innerText() ).trim();
 
+	// Wait for each stage: dnd-kit picks the item up, moves it over the next one, then drops it.
+	// Its screen-reader live region (role status, id DndLiveRegion-*) announces every step.
+	const announcer = page.locator( '[id^="DndLiveRegion"]' );
 	await page.getByRole( 'button', { name: `Move ${ first }` } ).focus();
 	await page.keyboard.press( 'Space' );
+	await expect( page.locator( '.rxcf-fields__row.is-dragging' ) ).toHaveCount( 1 );
 	await page.keyboard.press( 'ArrowDown' );
+	await expect( announcer ).toContainText( 'moved over' );
 	await page.keyboard.press( 'Space' );
 
 	await expect( titles.nth( 0 ) ).toHaveText( second );

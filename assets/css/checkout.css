@@ -7,6 +7,7 @@
 :where(.rxcf-field) :where(input,select,textarea){font:inherit;color:inherit;max-width:100%;box-sizing:border-box}
 :where(.rxcf-field) :where(input[type=date],input[type=number],textarea,select){width:100%}
 :where(.rxcf-field-textarea textarea){min-height:6em;resize:vertical}
+:where(.rxcf-field .show-password-input){min-width:24px;min-height:24px;display:inline-flex;align-items:center;justify-content:center}
 :where(.rxcf-field-hidden){display:none}
 :where(.rxcf-field-radio label.radio){display:inline-flex;align-items:center;margin-inline:.35em 1.25em;font-weight:inherit}
 :where(.rxcf-field-checkbox label.checkbox){display:inline-flex;align-items:flex-start;gap:.5em}
