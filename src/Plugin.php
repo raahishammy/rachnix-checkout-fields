@@ -9,6 +9,9 @@ declare(strict_types=1);
 
 namespace Rachnix\CheckoutFields;
 
+// Before the imports: Plugin Check only looks for this guard near the top of the file.
+defined( 'ABSPATH' ) || exit;
+
 use Rachnix\CheckoutFields\Admin\AdminPage;
 use Rachnix\CheckoutFields\I18n\StringTranslations;
 use Rachnix\CheckoutFields\I18n\TextDomain;
@@ -62,8 +65,6 @@ use Rachnix\CheckoutFields\Service\FieldService;
 use Rachnix\CheckoutFields\Service\PatternLibrary;
 use Rachnix\CheckoutFields\Service\Sanitizer;
 use Rachnix\CheckoutFields\Service\ValidationService;
-
-defined( 'ABSPATH' ) || exit;
 
 /**
  * Wires services together and registers their hooks. `boot()` is the only static entry point.
