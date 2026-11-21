@@ -29,15 +29,25 @@ export function itemTitle( item ) {
 }
 
 function badgesFor( item, type, usesBlockCheckout ) {
+	// Tone sets the badge colour: neutral, danger, success or warning.
 	const badges = [];
 	if ( ! item.enabled ) {
-		badges.push( __( 'Hidden', 'rachnix-checkout-fields' ) );
+		badges.push( {
+			label: __( 'Hidden', 'rachnix-checkout-fields' ),
+			tone: 'neutral',
+		} );
 	}
 	if ( item.settings?.required ) {
-		badges.push( __( 'Required', 'rachnix-checkout-fields' ) );
+		badges.push( {
+			label: __( 'Required', 'rachnix-checkout-fields' ),
+			tone: 'danger',
+		} );
 	}
 	if ( item.isNew ) {
-		badges.push( __( 'New', 'rachnix-checkout-fields' ) );
+		badges.push( {
+			label: __( 'New', 'rachnix-checkout-fields' ),
+			tone: 'success',
+		} );
 	}
 	if (
 		usesBlockCheckout &&
@@ -45,9 +55,13 @@ function badgesFor( item, type, usesBlockCheckout ) {
 		type &&
 		! type.block_checkout
 	) {
-		badges.push(
-			__( 'Not shown on the block checkout', 'rachnix-checkout-fields' )
-		);
+		badges.push( {
+			label: __(
+				'Not shown on the block checkout',
+				'rachnix-checkout-fields'
+			),
+			tone: 'warning',
+		} );
 	}
 	return badges;
 }
@@ -102,8 +116,11 @@ function Row( { item, type, selected, usesBlockCheckout, onSelect } ) {
 				<span className="rxcf-fields__title">{ title }</span>
 				<span className="rxcf-fields__type">{ typeLabel }</span>
 				{ badgesFor( item, type, usesBlockCheckout ).map( ( badge ) => (
-					<span key={ badge } className="rxcf-badge">
-						{ badge }
+					<span
+						key={ badge.label }
+						className={ `rxcf-badge is-${ badge.tone }` }
+					>
+						{ badge.label }
 					</span>
 				) ) }
 			</Button>

@@ -1,0 +1,9 @@
+{
+	"_comment": "ZAP alerts the CI gate does not fail on. Only alerts about the test server itself belong here, each with the reason. Never add an alert about a request our plugin handles.",
+	"accepted": [
+		{
+			"alert": "PHP Version with Known Vulnerabilities",
+			"reason": "About wp-env's PHP build (read from X-Powered-By), not our code. Stores run the PHP their host provides; we support 8.2 and later."
+		}
+	]
+}

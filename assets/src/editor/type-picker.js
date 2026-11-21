@@ -36,7 +36,7 @@ export default function TypePicker( {
 								{ type.description }
 							</span>
 							{ usesBlockCheckout && ! type.block_checkout && (
-								<span className="rxcf-badge">
+								<span className="rxcf-badge is-warning">
 									{ __(
 										'Not shown on the block checkout',
 										'rachnix-checkout-fields'

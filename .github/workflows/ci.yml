@@ -278,9 +278,17 @@ jobs:
           artifact_name: zap-report
       - name: Fail on high-risk alerts
         run: |
-          HIGH=$(jq '[.site[].alerts[] | select(.riskcode == "3")] | length' report_json.json)
           jq -r '.site[].alerts[] | "\(.riskdesc)  \(.alert)  (\(.count) found)"' report_json.json
-          echo "High-risk alerts: ${HIGH}"
+          echo
+          echo "High-risk alerts, every instance (accepted ones are listed in tests/zap/accepted-alerts.json):"
+          jq -r --slurpfile ok tests/zap/accepted-alerts.json '
+            ($ok[0].accepted | map(.alert)) as $accepted
+            | .site[].alerts[] | select(.riskcode == "3")
+            | "== \(.alert) (plugin \(.pluginid))\(if (.alert | IN($accepted[])) then " ACCEPTED" else "" end)",
+              (.instances[] | "  \(.method) \(.uri)\n    param    \(.param)\n    attack   \(.attack)\n    evidence \(.evidence)\n    other    \(.otherinfo // "" | gsub("\n"; " "))")
+          ' report_json.json
+          HIGH=$(jq --slurpfile ok tests/zap/accepted-alerts.json '($ok[0].accepted | map(.alert)) as $accepted | [.site[].alerts[] | select(.riskcode == "3") | select((.alert | IN($accepted[])) | not)] | length' report_json.json)
+          echo "High-risk alerts not accepted: ${HIGH}"
           test "${HIGH}" = "0"
 
   js:

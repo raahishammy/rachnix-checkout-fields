@@ -130,6 +130,9 @@ export default function Wizard( { onDone } ) {
 						STEPS
 					) }
 				</p>
+				<div className="rxcf-wizard__track" aria-hidden="true">
+					<span style={ { width: `${ ( step / STEPS ) * 100 }%` } } />
+				</div>
 			</div>
 
 			{ step === 1 && (

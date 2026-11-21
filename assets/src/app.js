@@ -18,9 +18,17 @@ export default function App() {
 
 	return (
 		<div className="rxcf-admin">
-			<h1 className="rxcf-admin__title">
-				{ __( 'Checkout Fields', 'rachnix-checkout-fields' ) }
-			</h1>
+			<header className="rxcf-admin__header">
+				<h1 className="rxcf-admin__title">
+					{ __( 'Checkout Fields', 'rachnix-checkout-fields' ) }
+				</h1>
+				<p className="rxcf-admin__subtitle">
+					{ __(
+						'Add, edit and arrange the fields customers fill in at checkout.',
+						'rachnix-checkout-fields'
+					) }
+				</p>
+			</header>
 			{ wizardDone ? (
 				<TabPanel
 					className="rxcf-admin__tabs"

@@ -209,7 +209,12 @@ export default function Editor() {
 	return (
 		<div className="rxcf-editor">
 			<div className="rxcf-editor__bar">
-				<span className="rxcf-editor__status" role="status">
+				<span
+					className={ `rxcf-editor__status ${
+						dirty ? 'is-dirty' : 'is-live'
+					}` }
+					role="status"
+				>
 					{ dirty
 						? sprintf(
 								/* translators: %d: number of unpublished changes. */

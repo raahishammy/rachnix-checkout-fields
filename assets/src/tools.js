@@ -152,7 +152,7 @@ export default function Tools() {
 				</Notice>
 			) }
 
-			<section>
+			<section className="rxcf-card">
 				<h2>{ __( 'Export', 'rachnix-checkout-fields' ) }</h2>
 				<p>
 					{ __(
@@ -165,7 +165,7 @@ export default function Tools() {
 				</Button>
 			</section>
 
-			<section>
+			<section className="rxcf-card">
 				<h2>{ __( 'Import', 'rachnix-checkout-fields' ) }</h2>
 				<p>
 					{ __(
@@ -229,7 +229,7 @@ export default function Tools() {
 				) }
 			</section>
 
-			<section>
+			<section className="rxcf-card is-danger">
 				<h2>{ __( 'Reset everything', 'rachnix-checkout-fields' ) }</h2>
 				<p>
 					{ __(
