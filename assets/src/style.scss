@@ -16,6 +16,7 @@ $border: #dcdcde;
 	padding: 0 0.5em;
 	border-radius: 2px;
 	background: #f0f0f1;
+	color: #1e1e1e; // Its own text colour, so it stays readable inside dark (pressed) buttons.
 	font-size: 12px;
 	line-height: 1.8;
 }
@@ -123,6 +124,12 @@ $border: #dcdcde;
 
 	&__type {
 		color: #50575e;
+	}
+
+	// The selected row's button is "pressed" (dark background, light text): follow its colour.
+	&__open.components-button.is-pressed &__type,
+	&__open.components-button[aria-pressed="true"] &__type {
+		color: inherit;
 	}
 }
 
