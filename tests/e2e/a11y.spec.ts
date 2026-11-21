@@ -16,7 +16,18 @@ test.describe.configure( { mode: 'serial' } );
 
 type Filter = ( node: { html: string; target: unknown[] } ) => boolean;
 
-async function audit( page: Page, include: string, where: string, ours: Filter = () => true ) {
+/**
+ * WooCommerce's own problems, listed but not failing. Each needs a test proving that
+ * WooCommerce's own fields have it too, so the exception is dropped once WooCommerce fixes it.
+ */
+const WOO_ERRORMESSAGE = 'aria-valid-attr-value';
+const KNOWN_WOOCOMMERCE: Record< string, string > = {
+	// Checkout block (wc-cart-checkout-base-frontend.js, ValidationInputError): the input's
+	// aria-errormessage points at an inner <p>, but role="alert" is on the <div> around it.
+	[ WOO_ERRORMESSAGE ]: 'WooCommerce Checkout block: aria-errormessage targets a <p> that is not itself announced',
+};
+
+async function audit( page: Page, include: string, where: string, ours: Filter = () => true, known: Record< string, string > = {} ) {
 	const results = await new AxeBuilder( { page } ).include( include ).withTags( TAGS ).analyze();
 	const violations = results.violations
 		.map( ( violation ) => ( { ...violation, nodes: violation.nodes.filter( ours ) } ) )
@@ -24,11 +35,12 @@ async function audit( page: Page, include: string, where: string, ours: Filter =
 
 	for ( const violation of violations ) {
 		test.info().annotations.push( {
-			type: `axe ${ violation.impact }`,
+			type: known[ violation.id ] ? `axe known issue (${ known[ violation.id ] })` : `axe ${ violation.impact }`,
 			description: `${ where }: ${ violation.id } (${ violation.help }) at ${ violation.nodes.map( ( node ) => node.target.join( ' ' ) ).join( ', ' ) }`,
 		} );
 	}
 	const blocking = violations
+		.filter( ( violation ) => ! known[ violation.id ] )
 		.filter( ( violation ) => violation.impact === 'serious' || violation.impact === 'critical' )
 		.map( ( violation ) => `${ violation.id }: ${ violation.help } → ${ violation.nodes.map( ( node ) => node.html ).join( ' | ' ) }` );
 	expect( blocking, `${ where }: serious or critical accessibility problems` ).toEqual( [] );
@@ -118,5 +130,13 @@ test( 'block checkout fields, with errors shown', async ( { page } ) => {
 
 	await page.getByRole( 'button', { name: /place order/i } ).click();
 	await expect( page.locator( '.wc-block-components-validation-error' ).first() ).toBeVisible();
-	await audit( page, '[data-block-name="woocommerce/checkout"]', 'Block checkout with errors', ours );
+	await audit( page, '[data-block-name="woocommerce/checkout"]', 'Block checkout with errors', ours, KNOWN_WOOCOMMERCE );
+
+	// Proof that the known issue is WooCommerce's: its own First name field has it too.
+	// If this fails, WooCommerce fixed it: remove the entry from KNOWN_WOOCOMMERCE.
+	const woo = await new AxeBuilder( { page } ).include( '[id$="-first_name"]' ).withRules( [ WOO_ERRORMESSAGE ] ).analyze();
+	expect(
+		woo.violations.map( ( violation ) => violation.id ),
+		'WooCommerce’s own First name field has the same aria-errormessage problem'
+	).toContain( WOO_ERRORMESSAGE );
 } );
