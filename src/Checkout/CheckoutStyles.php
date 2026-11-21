@@ -63,6 +63,8 @@ final class CheckoutStyles implements Hookable {
 		}
 		$style     = $this->settings->style();
 		$classes[] = 'rxcf-style-' . $style->mode->value;
+		// Parent theme, so child themes get the same theme fixes (see "Theme fixes" in checkout.css).
+		$classes[] = 'rxcf-theme-' . sanitize_html_class( get_template() );
 		if ( StyleMode::Custom === $style->mode && LabelPosition::Side === $style->label_position ) {
 			$classes[] = 'rxcf-labels-side';
 		}

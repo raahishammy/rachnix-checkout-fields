@@ -124,7 +124,8 @@ final class StylesTest extends IntegrationTestCase {
 	public function test_styles_follow_the_mode(): void {
 		$styles = new CheckoutStyles( $this->settings, WP_PLUGIN_DIR . '/rachnix-checkout-fields/rachnix-checkout-fields.php', static fn(): bool => true );
 
-		$this->assertSame( array( 'x', 'rxcf-style-theme' ), $styles->body_class( array( 'x' ) ) );
+		$theme = 'rxcf-theme-' . sanitize_html_class( get_template() );
+		$this->assertSame( array( 'x', 'rxcf-style-theme', $theme ), $styles->body_class( array( 'x' ) ) );
 		$this->assertSame( '', $styles->inline_css(), 'Follow theme: no inline CSS.' );
 
 		$this->call(
@@ -137,11 +138,11 @@ final class StylesTest extends IntegrationTestCase {
 				'label_position' => 'side',
 			)
 		);
-		$this->assertSame( array( 'rxcf-style-custom', 'rxcf-labels-side' ), $styles->body_class( array() ) );
+		$this->assertSame( array( 'rxcf-style-custom', $theme, 'rxcf-labels-side' ), $styles->body_class( array() ) );
 		$this->assertSame( ':root{--rxcf-radius:6px;--rxcf-gap:20px;--rxcf-accent:#1a73e8}', $styles->inline_css() );
 
 		$this->call( 'POST', array( 'mode' => 'plugin' ) );
-		$this->assertSame( array( 'rxcf-style-plugin' ), $styles->body_class( array() ) );
+		$this->assertSame( array( 'rxcf-style-plugin', $theme ), $styles->body_class( array() ) );
 	}
 
 	public function test_nothing_is_loaded_outside_the_checkout(): void {

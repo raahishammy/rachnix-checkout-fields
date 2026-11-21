@@ -1,5 +1,6 @@
 /* Rachnix Checkout Field Editor. Rules are wrapped in :where() so every theme rule wins,
-   except Custom mode (body.rxcf-style-custom), where the store owner chose to override. */
+   except Custom mode (body.rxcf-style-custom), where the store owner chose to override,
+   and theme fixes (body.rxcf-theme-*), which must beat the theme rule they correct. */
 :root{--rxcf-accent:var(--wp--preset--color--primary,var(--wp--preset--color--accent,#2271b1));--rxcf-radius:4px;--rxcf-gap:1em;--rxcf-border:color-mix(in srgb,currentColor 35%,transparent)}
 
 /* Layout, every mode */
@@ -22,4 +23,7 @@ body.rxcf-style-custom .woocommerce-checkout .form-row{margin-bottom:var(--rxcf-
 body.rxcf-style-custom .woocommerce-checkout .form-row :is(input.input-text,select,textarea),body.rxcf-style-custom .wc-block-checkout :is(.wc-block-components-text-input input,.wc-blocks-components-select select,.wc-block-components-textarea){border-radius:var(--rxcf-radius)}
 body.rxcf-style-custom :is(.woocommerce-checkout .form-row,.wc-block-checkout) :is(input,select,textarea):focus{outline:2px solid var(--rxcf-accent);outline-offset:1px;border-color:var(--rxcf-accent)}
 body.rxcf-style-custom :is(.woocommerce-checkout,.wc-block-checkout) :is(input[type=checkbox],input[type=radio]){accent-color:var(--rxcf-accent)}
+/* Theme fixes, added only where the theme checks found a gap (body.rxcf-theme-<parent theme>) */
+/* Hello Elementor pulls wide blocks out by 80px, past the screen edge on ~1280px windows. Keep 16px. */
+body.rxcf-theme-hello-elementor .wp-block-woocommerce-checkout.alignwide{margin-inline:max(-80px,calc((100% - 100vw)/2 + 16px))}
 @media (min-width:768px){body.rxcf-labels-side .woocommerce-checkout .form-row-wide:not(.rxcf-field-checkbox,.rxcf-field-hidden,.rxcf-field-radio){display:grid;grid-template-columns:minmax(8em,30%) 1fr;column-gap:1em;align-items:center}body.rxcf-labels-side .woocommerce-checkout .form-row-wide>label{margin:0}}

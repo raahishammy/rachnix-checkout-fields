@@ -90,7 +90,7 @@ async function layoutProblems( page: Page ): Promise< string[] > {
 			// Diagnosis: the outermost element wider than the window, and how the page clips it.
 			const wide = Array.from( document.querySelectorAll< HTMLElement >( 'body *' ) ).find( ( el ) => {
 				const box = el.getBoundingClientRect();
-				return box.right > width + 1 && box.width > 0;
+				return ( box.right > width + 1 || box.left < -1 ) && box.width > 0 && box.height > 0;
 			} );
 			const describe = ( el: Element | null ) => ( el ? `${ el.tagName.toLowerCase() }${ el.id ? '#' + el.id : '' }.${ Array.from( el.classList ).join( '.' ) }` : 'none' );
 			problems.push(

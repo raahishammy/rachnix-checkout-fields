@@ -16,7 +16,7 @@ use Rachnix\CheckoutFields\Tests\Unit\TestCase;
  */
 final class StylesheetTest extends TestCase {
 
-	private const ALLOWED_PREFIXES = array( ':root', 'body.rxcf-style-custom', 'body.rxcf-labels-side' );
+	private const ALLOWED_PREFIXES = array( ':root', 'body.rxcf-style-custom', 'body.rxcf-labels-side', 'body.rxcf-theme-' );
 
 	private static function css(): string {
 		return (string) file_get_contents( dirname( __DIR__, 3 ) . '/assets/css/checkout.css' );
@@ -42,6 +42,14 @@ final class StylesheetTest extends TestCase {
 		foreach ( self::selectors() as $selector ) {
 			if ( str_contains( $selector, 'rxcf-style-custom' ) || str_contains( $selector, 'rxcf-labels-side' ) ) {
 				$this->assertTrue( $this->starts_with_allowed( $selector ), $selector );
+			}
+		}
+	}
+
+	public function test_theme_fixes_only_target_one_theme_each(): void {
+		foreach ( self::selectors() as $selector ) {
+			if ( str_contains( $selector, 'rxcf-theme-' ) ) {
+				$this->assertMatchesRegularExpression( '/^body\.rxcf-theme-[a-z0-9-]+ /', $selector );
 			}
 		}
 	}
