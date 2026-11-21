@@ -1,12 +1,252 @@
-// Admin screen styles. Colours come from the user's admin colour scheme.
-.rxcf-admin {
-	max-width: 1400px;
+// Admin screen styles. Colours follow the user's admin colour scheme.
+$accent: var(--wp-admin-theme-color, #3858e9);
+$border: #dcdcde;
 
-	&__section {
-		margin-block-end: 1.5em;
+.rxcf-admin {
+	max-width: 1600px;
+
+	&__title {
+		margin-block-end: 0.5em;
+	}
+}
+
+.rxcf-badge {
+	display: inline-block;
+	margin-inline-start: 0.5em;
+	padding: 0 0.5em;
+	border-radius: 2px;
+	background: #f0f0f1;
+	font-size: 12px;
+	line-height: 1.8;
+}
+
+.rxcf-editor {
+	&__bar {
+		display: flex;
+		flex-wrap: wrap;
+		align-items: center;
+		gap: 8px;
+		margin-block: 12px;
 	}
 
-	code {
-		color: var(--wp-admin-theme-color, #3858e9);
+	&__status {
+		flex: 1 1 auto;
+	}
+
+	// Sections | fields | preview or settings. Tablets: preview goes below.
+	&__columns {
+		display: grid;
+		grid-template-columns: 200px minmax(280px, 1fr) minmax(340px, 1.3fr);
+		gap: 16px;
+		align-items: start;
+
+		@media (max-width: 1100px) {
+			grid-template-columns: 180px minmax(0, 1fr);
+
+			.rxcf-editor__side {
+				grid-column: 1 / -1;
+			}
+		}
+
+		@media (max-width: 600px) {
+			grid-template-columns: minmax(0, 1fr);
+		}
+	}
+}
+
+.rxcf-sections {
+	ul {
+		margin: 0 0 12px;
+	}
+
+	&__item.components-button {
+		width: 100%;
+		justify-content: space-between;
+	}
+}
+
+.rxcf-fields {
+	&__head {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		gap: 8px;
+
+		h2 {
+			margin: 0;
+		}
+	}
+
+	&__list {
+		margin: 12px 0 0;
+	}
+
+	&__row {
+		display: flex;
+		align-items: stretch;
+		margin: 0 0 6px;
+		border: 1px solid $border;
+		border-radius: 4px;
+		background: #fff;
+
+		&.is-selected {
+			border-color: $accent;
+			box-shadow: 0 0 0 1px $accent;
+		}
+
+		&.is-dragging {
+			opacity: 0.6;
+		}
+
+		&.is-hidden .rxcf-fields__title {
+			text-decoration: line-through;
+		}
+	}
+
+	&__handle.components-button {
+		cursor: grab;
+		height: auto;
+	}
+
+	&__open.components-button {
+		flex: 1 1 auto;
+		flex-wrap: wrap;
+		gap: 4px;
+		height: auto;
+		min-height: 40px;
+		text-align: start;
+	}
+
+	&__title {
+		font-weight: 600;
+	}
+
+	&__type {
+		color: #50575e;
+	}
+}
+
+.rxcf-panel,
+.rxcf-preview {
+	padding: 12px 16px;
+	border: 1px solid $border;
+	border-radius: 4px;
+	background: #fff;
+
+	&__head {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+
+		h2 {
+			margin: 0;
+		}
+	}
+}
+
+.rxcf-panel {
+	&__tab {
+		display: grid;
+		gap: 16px;
+		padding-block: 16px;
+	}
+
+	&__foot {
+		padding-block-start: 12px;
+		border-top: 1px solid $border;
+	}
+}
+
+.rxcf-options,
+.rxcf-rule {
+	display: grid;
+	gap: 8px;
+	margin: 0;
+	padding: 12px;
+	border: 1px solid $border;
+	border-radius: 4px;
+
+	legend {
+		padding: 0 4px;
+		font-weight: 600;
+	}
+}
+
+.rxcf-options__row,
+.rxcf-rule__range,
+.rxcf-rule__add {
+	display: flex;
+	align-items: flex-end;
+	gap: 8px;
+
+	> * {
+		flex: 1 1 0;
+	}
+
+	> .components-button {
+		flex: 0 0 auto;
+	}
+}
+
+.rxcf-preview {
+	&__note {
+		color: #50575e;
+	}
+
+	&__frame {
+		display: block;
+		width: 100%;
+		height: 75vh;
+		margin-block-start: 8px;
+		border: 1px solid $border;
+		border-radius: 4px;
+		background: #fff;
+	}
+}
+
+.rxcf-type-picker__grid {
+	display: grid;
+	grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+	gap: 8px;
+	margin: 0;
+}
+
+.rxcf-type-picker__type.components-button {
+	display: grid;
+	grid-template-columns: 24px 1fr;
+	gap: 2px 8px;
+	width: 100%;
+	height: auto;
+	padding: 12px;
+	border: 1px solid $border;
+	text-align: start;
+	white-space: normal;
+
+	.rxcf-type-picker__label {
+		font-weight: 600;
+	}
+
+	.rxcf-type-picker__description,
+	.rxcf-badge {
+		grid-column: 2;
+		color: #50575e;
+	}
+}
+
+.rxcf-modal-actions {
+	display: flex;
+	justify-content: flex-end;
+	gap: 8px;
+}
+
+.rxcf-style {
+	display: grid;
+	gap: 16px;
+	max-width: 640px;
+	padding-block: 16px;
+
+	&__custom {
+		display: grid;
+		gap: 16px;
 	}
 }

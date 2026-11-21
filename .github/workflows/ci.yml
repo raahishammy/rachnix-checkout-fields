@@ -116,7 +116,7 @@ jobs:
           npx @wordpress/env@10 run cli bash -c 'test ! -f wp-content/debug.log || ! grep -i "rachnix-checkout-fields" wp-content/debug.log'
 
   e2e:
-    name: E2E checkout, classic and block (Playwright)
+    name: E2E checkout and admin editor (Playwright)
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
@@ -126,6 +126,7 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npx playwright install --with-deps chromium
+      - run: npm run build
       - run: npx wp-env start
       - name: Activate plugins (WooCommerce first)
         run: |
@@ -192,6 +193,7 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm run lint:js
+      - run: npm run test:js
       - run: npm run build
       - name: Build produced the admin app
         run: test -f assets/build/index.js && test -f assets/build/index.asset.php

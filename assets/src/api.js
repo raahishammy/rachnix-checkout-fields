@@ -14,6 +14,18 @@ export const getCoreFields = () => apiFetch( { path: path( '/core-fields' ) } );
 
 export const getFieldTypes = () => apiFetch( { path: path( '/field-types' ) } );
 
+export const getSettings = () => apiFetch( { path: path( '/settings' ) } );
+
+/**
+ * @param {Object} style Changed style settings.
+ */
+export const saveSettings = ( style ) =>
+	apiFetch( {
+		path: path( '/settings' ),
+		method: 'POST',
+		data: { style },
+	} );
+
 /**
  * Applies the draft (a list of operations) in one transaction.
  *
