@@ -73,7 +73,8 @@ final class WooCoreFieldCatalog implements CoreFieldCatalogInterface {
 		return new CoreFieldDefault(
 			$section,
 			$key,
-			is_string( $args['label'] ?? null ) ? $args['label'] : $key,
+			// A theme or plugin may blank a label; the key keeps the field nameable in the editor.
+			is_string( $args['label'] ?? null ) && '' !== trim( $args['label'] ) ? $args['label'] : $key,
 			true === $required,
 			is_numeric( $args['priority'] ?? null ) ? (int) $args['priority'] : 10,
 			$half ? Width::Half : Width::Full,

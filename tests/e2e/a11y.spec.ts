@@ -92,7 +92,8 @@ test( 'fields can be reordered with the keyboard only', async ( { page } ) => {
 	const second = ( await titles.nth( 1 ).innerText() ).trim();
 
 	// Wait for each stage through the screen-reader live region (id DndLiveRegion-*), which
-	// announces by field title: "Picked up A.", "A is over B.", then the drop.
+	// announces by field title: "A is at its starting place." (dnd-kit replaces "Picked up A."
+	// with it at once), "A is over B.", then the drop.
 	// When the page can scroll, dnd-kit may spend an ArrowDown scrolling the window instead
 	// of moving, so press again (at most three times) until the field is over the next one.
 	const announcer = page.locator( '[id^="DndLiveRegion"]' );
@@ -101,7 +102,7 @@ test( 'fields can be reordered with the keyboard only', async ( { page } ) => {
 	await handle.focus();
 	await page.keyboard.press( 'Space' );
 	await expect( page.locator( '.rxcf-fields__row.is-dragging' ) ).toHaveCount( 1 );
-	await expect( announcer ).toContainText( `Picked up ${ first }` );
+	await expect( announcer ).toContainText( `${ first } is at its starting place` );
 	const over = `${ first } is over ${ second }`;
 	for ( let press = 0; press < 3; press++ ) {
 		await page.keyboard.press( 'ArrowDown' );

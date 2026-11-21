@@ -22,10 +22,11 @@ import { __, sprintf } from '@wordpress/i18n';
 import { dragHandle, plus } from '@wordpress/icons';
 
 export function itemTitle( item ) {
+	// Never empty: handle names ("Move …") and drag announcements are built from it.
 	if ( item.kind === 'core' ) {
-		return item.label || item.defaults.label;
+		return item.label?.trim() || item.defaults.label?.trim() || item.key;
 	}
-	return item.label || item.key;
+	return item.label?.trim() || item.key;
 }
 
 function badgesFor( item, type, usesBlockCheckout ) {
@@ -157,8 +158,18 @@ export default function FieldList( {
 				__( 'Picked up %s.', 'rachnix-checkout-fields' ),
 				titleOf( active.id )
 			),
-		onDragOver: ( { active, over } ) =>
-			over
+		onDragOver: ( { active, over } ) => {
+			if ( over?.id === active.id ) {
+				return sprintf(
+					/* translators: %s: field label. */
+					__(
+						'%s is at its starting place.',
+						'rachnix-checkout-fields'
+					),
+					titleOf( active.id )
+				);
+			}
+			return over
 				? sprintf(
 						/* translators: 1: moved field label, 2: label of the field it is over. */
 						__( '%1$s is over %2$s.', 'rachnix-checkout-fields' ),
@@ -172,9 +183,10 @@ export default function FieldList( {
 							'rachnix-checkout-fields'
 						),
 						titleOf( active.id )
-				  ),
+				  );
+		},
 		onDragEnd: ( { active, over } ) =>
-			over
+			over && over.id !== active.id
 				? sprintf(
 						/* translators: 1: moved field label, 2: label of the field it took the place of. */
 						__(
