@@ -213,6 +213,45 @@ final class PublishTest extends IntegrationTestCase {
 		$this->assertStringContainsString( 'Orders cannot be placed', $mode->order_button() );
 	}
 
+	public function test_preview_can_hide_a_woocommerce_field(): void {
+		// Regression: preview used to start before WooCommerce created WC()->countries, so edits
+		// to WooCommerce's own fields failed validation and the preview silently showed live fields.
+		$response = $this->call(
+			'preview',
+			array(
+				array(
+					'op'      => 'core',
+					'section' => 'billing',
+					'key'     => 'billing_city',
+					'changes' => array( 'enabled' => false ),
+				),
+			)
+		);
+		$this->assertSame( 200, $response->get_status(), wp_json_encode( $response->get_data() ) );
+		wp_parse_str( (string) wp_parse_url( $response->get_data()['url'], PHP_URL_QUERY ), $query );
+
+		$_GET[ PreviewService::QUERY_ARG ] = '1';
+		$_GET[ PreviewService::NONCE_ARG ] = $query[ PreviewService::NONCE_ARG ];
+		$mode                              = new PreviewMode( $this->previews, $this->repository );
+		$mode->maybe_activate();
+
+		$this->assertTrue( $mode->is_active() );
+		$city = $this->repository->all()->find_by_key( \Rachnix\CheckoutFields\Domain\SectionKey::from_string( 'billing' ), 'billing_city' );
+		$this->assertNotNull( $city );
+		$this->assertFalse( $city->enabled );
+		$this->assertCount( 0, ( new FieldRepository( self::db(), self::tables(), new FieldCache( self::CACHE_KEY ), new Logger() ) )->all(), 'Nothing was saved.' );
+	}
+
+	public function test_preview_starts_after_woocommerce_is_ready_and_before_block_fields(): void {
+		$mode = new PreviewMode( $this->previews, $this->repository );
+		$mode->register();
+
+		$this->assertSame( PreviewMode::PRIORITY, has_action( 'woocommerce_init', array( $mode, 'maybe_activate' ) ) );
+		$this->assertLessThan( 10, PreviewMode::PRIORITY, 'Block checkout fields register at the default priority, 10.' );
+		$this->assertFalse( has_action( 'init', array( $mode, 'maybe_activate' ) ), 'Not on init: WC()->countries does not exist yet there.' );
+		remove_action( 'woocommerce_init', array( $mode, 'maybe_activate' ), PreviewMode::PRIORITY );
+	}
+
 	public function test_preview_never_reaches_other_users(): void {
 		$response = $this->call( 'preview', array( $this->create( self::UUID_A, 'gift_note' ) ) );
 		wp_parse_str( (string) wp_parse_url( $response->get_data()['url'], PHP_URL_QUERY ), $query );

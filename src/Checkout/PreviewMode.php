@@ -36,9 +36,15 @@ final class PreviewMode implements Hookable {
 		private readonly FieldRepository $repository,
 	) {}
 
+	/**
+	 * On woocommerce_init, priority 1: WooCommerce has created WC()->countries by then (the
+	 * draft's edits to WooCommerce's own fields are validated against it), and it is still
+	 * before the block checkout integration registers fields (priority 10).
+	 */
+	public const PRIORITY = 1;
+
 	public function register(): void {
-		// Before WooCommerce's init (priority 0), which registers block checkout fields.
-		add_action( 'init', array( $this, 'maybe_activate' ), -100 );
+		add_action( 'woocommerce_init', array( $this, 'maybe_activate' ), self::PRIORITY );
 	}
 
 	public function is_active(): bool {
