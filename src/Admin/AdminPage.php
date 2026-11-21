@@ -111,14 +111,16 @@ final class AdminPage implements Hookable {
 	 */
 	public function config(): array {
 		return array(
-			'namespace'         => AbstractController::NAMESPACE,
-			'version'           => Plugin::VERSION,
-			'checkoutUrl'       => function_exists( 'wc_get_checkout_url' ) ? wc_get_checkout_url() : '',
-			'usesBlockCheckout' => $this->detector->uses_block_checkout(),
-			'blockDateFields'   => $this->support->date_supported(),
-			'canEditCss'        => current_user_can( 'edit_css' ),
-			'wizardCompleted'   => $this->settings?->wizard_completed() ?? true,
-			'restoreFieldsUrl'  => admin_url( 'admin.php?page=' . self::SLUG ),
+			'namespace'             => AbstractController::NAMESPACE,
+			'version'               => Plugin::VERSION,
+			'checkoutUrl'           => function_exists( 'wc_get_checkout_url' ) ? wc_get_checkout_url() : '',
+			'usesBlockCheckout'     => $this->detector->uses_block_checkout(),
+			'blockDateFields'       => $this->support->date_supported(),
+			'canEditCss'            => current_user_can( 'edit_css' ),
+			'wizardCompleted'       => $this->settings?->wizard_completed() ?? true,
+			'restoreFieldsUrl'      => admin_url( 'admin.php?page=' . self::SLUG ),
+			'deleteDataOnUninstall' => $this->settings?->delete_data_on_uninstall() ?? false,
+			'canDeletePlugins'      => current_user_can( 'delete_plugins' ),
 		);
 	}
 

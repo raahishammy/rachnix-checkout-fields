@@ -3,10 +3,18 @@
  * and reset everything.
  */
 import { useState } from '@wordpress/element';
-import { Button, CheckboxControl, Notice } from '@wordpress/components';
+import {
+	Button,
+	CheckboxControl,
+	Notice,
+	TextareaControl,
+	ToggleControl,
+} from '@wordpress/components';
 import { __, sprintf } from '@wordpress/i18n';
 import * as api from './api';
 import ConfirmModal from './editor/confirm-modal';
+
+const config = window.rxcfAdmin ?? {};
 
 function errorText( problem ) {
 	return [ problem?.message, ...Object.values( problem?.data?.params ?? {} ) ]
@@ -43,6 +51,47 @@ export default function Tools() {
 	const [ accepted, setAccepted ] = useState( false );
 	const [ busy, setBusy ] = useState( false );
 	const [ confirmReset, setConfirmReset ] = useState( false );
+	const [ deleteData, setDeleteData ] = useState(
+		Boolean( config.deleteDataOnUninstall )
+	);
+	const [ savingDelete, setSavingDelete ] = useState( false );
+
+	const [ systemInfo, setSystemInfo ] = useState( null );
+	const [ copied, setCopied ] = useState( false );
+
+	const onShowSystemInfo = async () => {
+		setNotice( null );
+		try {
+			setSystemInfo( ( await api.getSystemInfo() ).text );
+		} catch ( problem ) {
+			setNotice( { status: 'error', text: errorText( problem ) } );
+		}
+	};
+
+	const onCopySystemInfo = async () => {
+		const box = document.getElementById( 'rxcf-system-info' );
+		try {
+			await window.navigator.clipboard.writeText( systemInfo );
+		} catch {
+			// No clipboard API on plain-HTTP admin screens: select the text for Ctrl+C instead.
+			box?.select();
+			return;
+		}
+		setCopied( true );
+	};
+
+	const onDeleteData = async ( enabled ) => {
+		setNotice( null );
+		setSavingDelete( true );
+		try {
+			const result = await api.saveUninstall( enabled );
+			setDeleteData( Boolean( result.delete_data ) );
+			config.deleteDataOnUninstall = Boolean( result.delete_data );
+		} catch ( problem ) {
+			setNotice( { status: 'error', text: errorText( problem ) } );
+		}
+		setSavingDelete( false );
+	};
 
 	const onExport = async () => {
 		setNotice( null );
@@ -226,6 +275,81 @@ export default function Tools() {
 							{ __( 'Import', 'rachnix-checkout-fields' ) }
 						</Button>
 					</div>
+				) }
+			</section>
+
+			<section className="rxcf-card">
+				<h2>
+					{ __(
+						'When the plugin is deleted',
+						'rachnix-checkout-fields'
+					) }
+				</h2>
+				<ToggleControl
+					__nextHasNoMarginBottom
+					label={ __(
+						'Delete all data when the plugin is deleted',
+						'rachnix-checkout-fields'
+					) }
+					help={
+						config.canDeletePlugins
+							? __(
+									'Off: deleting the plugin keeps your fields and settings, so reinstalling brings them back. On: they are removed too. Values on past orders are always kept.',
+									'rachnix-checkout-fields'
+							  )
+							: __(
+									'Only users who can delete plugins can change this.',
+									'rachnix-checkout-fields'
+							  )
+					}
+					checked={ deleteData }
+					disabled={ ! config.canDeletePlugins || savingDelete }
+					onChange={ onDeleteData }
+				/>
+			</section>
+
+			<section className="rxcf-card">
+				<h2>{ __( 'System info', 'rachnix-checkout-fields' ) }</h2>
+				<p>
+					{ __(
+						'Versions and setup to paste into a bug report. It contains no site address, customer data or field labels.',
+						'rachnix-checkout-fields'
+					) }
+				</p>
+				{ systemInfo === null ? (
+					<Button variant="secondary" onClick={ onShowSystemInfo }>
+						{ __( 'Show system info', 'rachnix-checkout-fields' ) }
+					</Button>
+				) : (
+					<>
+						<TextareaControl
+							__nextHasNoMarginBottom
+							id="rxcf-system-info"
+							className="rxcf-tools__system-info"
+							label={ __(
+								'System info',
+								'rachnix-checkout-fields'
+							) }
+							hideLabelFromVision
+							readOnly
+							rows={ 12 }
+							value={ systemInfo }
+							onChange={ () => {} }
+						/>
+						<div className="rxcf-tools__actions">
+							<Button
+								variant="secondary"
+								onClick={ onCopySystemInfo }
+							>
+								{ copied
+									? __( 'Copied', 'rachnix-checkout-fields' )
+									: __(
+											'Copy system info',
+											'rachnix-checkout-fields'
+									  ) }
+							</Button>
+						</div>
+					</>
 				) }
 			</section>
 

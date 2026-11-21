@@ -7,6 +7,7 @@ declare(strict_types=1);
 
 namespace Rachnix\CheckoutFields\Tests\Integration;
 
+use Rachnix\CheckoutFields\Checkout\CheckoutDetector;
 use Rachnix\CheckoutFields\Checkout\OrderDataWriter;
 use Rachnix\CheckoutFields\Checkout\WooCoreFieldCatalog;
 use Rachnix\CheckoutFields\Display\OrderFieldValues;
@@ -16,6 +17,7 @@ use Rachnix\CheckoutFields\Domain\FieldSettings;
 use Rachnix\CheckoutFields\Domain\SectionKey;
 use Rachnix\CheckoutFields\FieldTypes\FieldTypeRegistry;
 use Rachnix\CheckoutFields\I18n\StringTranslations;
+use Rachnix\CheckoutFields\Plugin;
 use Rachnix\CheckoutFields\Privacy\PrivacyIntegration;
 use Rachnix\CheckoutFields\Repository\AuditLogRepository;
 use Rachnix\CheckoutFields\Repository\FieldCache;
@@ -28,6 +30,7 @@ use Rachnix\CheckoutFields\Service\FieldService;
 use Rachnix\CheckoutFields\Service\ImportExportService;
 use Rachnix\CheckoutFields\Service\PatternLibrary;
 use Rachnix\CheckoutFields\Service\SettingsService;
+use Rachnix\CheckoutFields\Service\SystemInfo;
 
 /**
  * Step 10: signed export and import, reset everything, the wizard flag, privacy tools and
@@ -236,6 +239,52 @@ final class ToolsTest extends IntegrationTestCase {
 		$this->assertFalse( $this->settings->wizard_completed() );
 		$this->assertTrue( $this->call( 'POST', '/wizard/complete' )->get_data()['completed'] );
 		$this->assertTrue( $this->settings->wizard_completed() );
+	}
+
+	public function test_delete_data_on_uninstall_is_off_by_default_and_needs_delete_plugins(): void {
+		$this->assertFalse( $this->settings->delete_data_on_uninstall() );
+
+		// A shop manager manages fields but cannot delete plugins, so cannot decide what deleting removes.
+		$this->assertSame( 403, $this->call( 'POST', '/uninstall', array( 'delete_data' => true ) )->get_status() );
+		$this->assertFalse( $this->settings->delete_data_on_uninstall() );
+
+		$admin = self::create_test_user( 'administrator' );
+		if ( is_multisite() ) {
+			grant_super_admin( $admin ); // Only super admins can delete plugins on a network.
+		}
+		wp_set_current_user( $admin );
+		try {
+			$this->assertSame( array( 'delete_data' => true ), $this->call( 'POST', '/uninstall', array( 'delete_data' => true ) )->get_data() );
+			$this->assertTrue( $this->settings->delete_data_on_uninstall() );
+			$this->assertSame( array( 'delete_data' => false ), $this->call( 'POST', '/uninstall', array( 'delete_data' => false ) )->get_data() );
+			$this->assertFalse( $this->settings->delete_data_on_uninstall() );
+		} finally {
+			wp_set_current_user( self::$manager );
+			if ( is_multisite() ) {
+				revoke_super_admin( $admin );
+			}
+			self::delete_test_user( $admin );
+		}
+	}
+
+	public function test_system_info_helps_a_bug_report_without_identifying_the_store(): void {
+		$this->make_setup();
+		$info = new SystemInfo( $this->fields, new CheckoutDetector(), new SettingsRepository( self::OPTION ), self::VERSION_OPTION );
+		$text = $info->as_text();
+
+		$this->assertStringContainsString( 'Version: ' . Plugin::VERSION, $text );
+		$this->assertStringContainsString( 'WordPress: ' . get_bloginfo( 'version' ), $text );
+		$this->assertStringContainsString( 'PHP: ' . PHP_VERSION, $text );
+		$this->assertStringContainsString( 'Style mode: plugin', $text );
+		$this->assertStringContainsString( 'order (custom): gift_note [textarea], slot [select]', $text );
+		$this->assertStringContainsString( 'billing (WooCommerce fields changed): billing_city', $text );
+
+		// Nothing a store owner typed, and nothing that identifies the site or its people.
+		foreach ( array( 'Gift note', 'Evening', 'Town', home_url(), wp_parse_url( home_url(), PHP_URL_HOST ), get_option( 'admin_email' ), get_bloginfo( 'name' ) ) as $private ) {
+			if ( is_string( $private ) && '' !== $private ) {
+				$this->assertStringNotContainsString( $private, $text );
+			}
+		}
 	}
 
 	public function test_privacy_export_and_erase_cover_both_checkouts(): void {

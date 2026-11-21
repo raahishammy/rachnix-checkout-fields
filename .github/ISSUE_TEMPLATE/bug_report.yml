@@ -1,0 +1,59 @@
+name: Bug report
+description: Something doesn't work as it should.
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for testing! Please don't post security problems here: see SECURITY.md for how to report them privately.
+        Never paste customer details (names, addresses, emails, phone numbers) or passwords.
+  - type: dropdown
+    id: severity
+    attributes:
+      label: How bad is it?
+      options:
+        - "Critical: customers can't place orders, or orders lose data"
+        - "Major: a feature doesn't work and there's no workaround"
+        - "Minor: it works, but something is wrong or confusing"
+    validations:
+      required: true
+  - type: dropdown
+    id: checkout
+    attributes:
+      label: Which checkout?
+      options:
+        - Classic checkout (shortcode)
+        - Checkout block
+        - Both
+        - Not about the checkout (admin, emails, orders)
+    validations:
+      required: true
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened, and what did you expect?
+      placeholder: "I added a required Drop-down to Billing details. On the checkout, the order went through without choosing an option."
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. Go to WooCommerce > Checkout Fields
+        2. ...
+    validations:
+      required: true
+  - type: textarea
+    id: system-info
+    attributes:
+      label: System info
+      description: In WooCommerce > Checkout Fields > Tools, click "Show system info", then "Copy system info", and paste it here. It contains no site address or customer data.
+      render: text
+    validations:
+      required: true
+  - type: textarea
+    id: extra
+    attributes:
+      label: Screenshots or error messages
+      description: Screenshots help a lot. Crop out customer details. Errors from WooCommerce > Status > Logs are welcome too.

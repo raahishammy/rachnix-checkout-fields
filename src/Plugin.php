@@ -16,8 +16,10 @@ use Rachnix\CheckoutFields\Admin\AdminPage;
 use Rachnix\CheckoutFields\I18n\StringTranslations;
 use Rachnix\CheckoutFields\I18n\TextDomain;
 use Rachnix\CheckoutFields\Privacy\PrivacyIntegration;
+use Rachnix\CheckoutFields\Rest\SystemInfoController;
 use Rachnix\CheckoutFields\Rest\ToolsController;
 use Rachnix\CheckoutFields\Service\ImportExportService;
+use Rachnix\CheckoutFields\Service\SystemInfo;
 use Rachnix\CheckoutFields\Display\BlockFieldVisibility;
 use Rachnix\CheckoutFields\Display\CustomerDisplay;
 use Rachnix\CheckoutFields\Display\EmailDisplay;
@@ -71,7 +73,7 @@ use Rachnix\CheckoutFields\Service\ValidationService;
  */
 final class Plugin {
 
-	public const VERSION = '0.1.0';
+	public const VERSION = '0.1.0-beta.1';
 
 	/** Option holding each site's installed schema version. */
 	public const DB_VERSION_OPTION = 'rxcf_db_version';
@@ -273,6 +275,10 @@ final class Plugin {
 					new SettingsController( $c->get( SettingsService::class ), $c->get( Logger::class ) ),
 					new PublishController( $c->get( FieldService::class ), $c->get( PreviewService::class ), $c->get( Logger::class ) ),
 					new ToolsController( $c->get( ImportExportService::class ), $c->get( FieldService::class ), $c->get( SettingsService::class ), $c->get( Logger::class ) ),
+					new SystemInfoController(
+						new SystemInfo( $c->get( FieldService::class ), $c->get( CheckoutDetector::class ), $c->get( SettingsRepository::class ) ),
+						$c->get( Logger::class )
+					),
 				)
 			)
 		);

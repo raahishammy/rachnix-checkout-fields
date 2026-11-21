@@ -32,6 +32,9 @@
 /phpunit-integration.xml.dist
 /playwright.config.ts
 /languages/README.md
+/docs
+/README.md
+/.wordpress-org
 *.map
 *.log
 .DS_Store

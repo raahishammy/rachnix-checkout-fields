@@ -691,6 +691,16 @@ $accent-dark: var(--wp-admin-theme-color-darker-20, #2145e6);
 		}
 	}
 
+	&__system-info textarea {
+		font-family: Menlo, Consolas, monospace;
+		font-size: 12px;
+		background: var(--rxcf-canvas);
+	}
+
+	&__actions {
+		margin-top: 8px;
+	}
+
 	&__preview {
 		display: grid;
 		gap: 12px;

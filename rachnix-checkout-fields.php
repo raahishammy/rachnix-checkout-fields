@@ -2,7 +2,7 @@
 /**
  * Plugin Name:          Rachnix Checkout Field Editor for WooCommerce
  * Description:          Edit, hide, reorder and add checkout fields on both the classic and the block checkout.
- * Version:              0.1.0
+ * Version:              0.1.0-beta.1
  * Requires at least:    6.5
  * Requires PHP:         8.2
  * Requires Plugins:     woocommerce

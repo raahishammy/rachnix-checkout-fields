@@ -1,0 +1,47 @@
+name: Beta feedback
+description: Tell us how the plugin worked on your store, or what you'd change.
+labels: [feedback]
+body:
+  - type: textarea
+    id: used-for
+    attributes:
+      label: What did you use it for?
+      placeholder: "Added a delivery date and a gift message; hid Company and Address line 2."
+    validations:
+      required: true
+  - type: dropdown
+    id: first-field
+    attributes:
+      label: How long did your first field take, from opening the editor to seeing it on the checkout?
+      options:
+        - Under 2 minutes
+        - 2 to 5 minutes
+        - More than 5 minutes
+        - I didn't manage it
+    validations:
+      required: true
+  - type: textarea
+    id: confusing
+    attributes:
+      label: What was confusing or slow?
+  - type: textarea
+    id: missing
+    attributes:
+      label: What's missing that you'd need?
+  - type: textarea
+    id: testimonial
+    attributes:
+      label: A sentence or two about the plugin (optional)
+      description: We may quote this on WordPress.org or our website.
+  - type: checkboxes
+    id: consent
+    attributes:
+      label: Quoting
+      options:
+        - label: You may quote what I wrote above, with my first name and store name.
+  - type: textarea
+    id: system-info
+    attributes:
+      label: System info (optional)
+      description: Tools > Show system info > Copy system info.
+      render: text

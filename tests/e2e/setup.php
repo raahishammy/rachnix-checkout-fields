@@ -82,6 +82,8 @@ delete_transient( 'rxcf_uses_block_checkout' ); // The plugin re-detects the che
 $rxcf_settings                     = get_option( 'rxcf_settings', array() );
 $rxcf_settings                     = is_array( $rxcf_settings ) ? $rxcf_settings : array();
 $rxcf_settings['wizard_completed'] = 'wizard' !== ( $args[1] ?? '' );
+// Every run starts from the default: deleting the plugin keeps its data.
+$rxcf_settings['delete_data_on_uninstall'] = false;
 update_option( 'rxcf_settings', $rxcf_settings, true );
 
 // A virtual product, so no shipping method is needed.

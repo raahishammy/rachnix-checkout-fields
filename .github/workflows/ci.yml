@@ -6,6 +6,8 @@ on:
   pull_request:
   # Manual runs from the Actions tab ("Run workflow").
   workflow_dispatch:
+  # Called by release.yml on a version tag, so every check passes before a zip is built.
+  workflow_call:
 
 permissions:
   contents: read
@@ -227,13 +229,12 @@ jobs:
           npx wp-env run cli wp plugin activate woocommerce
           npx wp-env run cli wp plugin activate rachnix-checkout-fields
           npx wp-env run cli wp plugin activate plugin-check
-      # Full report, warnings included, for reading. plugin_readme is skipped until
-      # readme.txt is written in step 12; remove that exclusion then.
+      # Full report, warnings included, for reading. Includes the readme.txt checks.
       - name: Plugin Check report (errors and warnings)
-        run: npx wp-env run cli wp plugin check rachnix-checkout-fields --require=./wp-content/plugins/plugin-check/cli.php --exclude-checks=plugin_readme
+        run: npx wp-env run cli wp plugin check rachnix-checkout-fields --require=./wp-content/plugins/plugin-check/cli.php
       - name: Plugin Check gate (no errors)
         run: |
-          npx wp-env run cli wp plugin check rachnix-checkout-fields --require=./wp-content/plugins/plugin-check/cli.php --exclude-checks=plugin_readme --ignore-warnings | tee plugin-check.txt
+          npx wp-env run cli wp plugin check rachnix-checkout-fields --require=./wp-content/plugins/plugin-check/cli.php --ignore-warnings | tee plugin-check.txt
           grep -q "No errors found" plugin-check.txt
 
   semgrep:
@@ -296,6 +297,40 @@ jobs:
           ' report_json.json)
           echo "High-risk instances not accepted: ${HIGH}"
           test "${HIGH}" = "0"
+
+  listing-assets:
+    # WordPress.org screenshots, banner and icon (tests/e2e/listing.spec.ts). Only from
+    # "Run workflow"; download the artifact and commit its files to .wordpress-org/.
+    if: github.event_name == 'workflow_dispatch'
+    name: WordPress.org listing assets
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - run: npm run build
+      - name: Start wp-env (retried once if MySQL is slow to start)
+        run: npx wp-env start || (sleep 15 && npx wp-env start)
+      - name: Activate plugins (WooCommerce first) and install Storefront
+        run: |
+          npx wp-env run cli wp plugin activate woocommerce
+          npx wp-env run cli wp plugin activate rachnix-checkout-fields
+          npx wp-env run cli bash -c 'wp theme is-installed storefront || wp theme install storefront'
+      - run: npx playwright test tests/e2e/listing.spec.ts
+        env:
+          RXCF_LISTING: '1'
+          RXCF_LISTING_THEME: storefront
+      - name: Upload listing assets
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: wordpress-org-assets
+          path: test-results/wordpress-org/
+          retention-days: 30
 
   js:
     name: JavaScript (lint, build, audit)

@@ -20,6 +20,8 @@ final class SettingsRepository {
 
 	public const OPTION = 'rxcf_settings';
 
+	public const DELETE_DATA_KEY = 'delete_data_on_uninstall';
+
 	private ?StyleSettings $style = null;
 
 	/**
@@ -57,6 +59,23 @@ final class SettingsRepository {
 	public function complete_wizard(): void {
 		$all                     = $this->all();
 		$all['wizard_completed'] = true;
+		update_option( $this->option, $all, true );
+	}
+
+	/**
+	 * Whether deleting the plugin also removes its tables and settings (off by default).
+	 * Read by `Core\Uninstaller` under the same key.
+	 */
+	public function delete_data_on_uninstall(): bool {
+		return true === ( $this->all()[ self::DELETE_DATA_KEY ] ?? false );
+	}
+
+	/**
+	 * @param bool $enabled New value.
+	 */
+	public function save_delete_data_on_uninstall( bool $enabled ): void {
+		$all                          = $this->all();
+		$all[ self::DELETE_DATA_KEY ] = $enabled;
 		update_option( $this->option, $all, true );
 	}
 

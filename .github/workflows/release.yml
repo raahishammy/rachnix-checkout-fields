@@ -1,0 +1,63 @@
+name: Release
+
+# Push a tag such as v0.1.0-beta.1 or v0.1.0. Every CI check runs first (ci.yml); then the
+# plugin zip is built from the shipped files and attached to a GitHub Release. Tags with a
+# "-" (v0.1.0-beta.1, v0.2.0-rc.1) become pre-releases. WordPress.org deploys come later.
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: read
+
+jobs:
+  ci:
+    name: CI
+    uses: ./.github/workflows/ci.yml
+
+  release:
+    name: Build zip and publish the GitHub Release
+    needs: ci
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '22'
+          cache: npm
+      - name: Tag matches the plugin version and readme
+        run: |
+          VERSION="${GITHUB_REF_NAME#v}"
+          echo "VERSION=${VERSION}" >> "$GITHUB_ENV"
+          grep -Eq "^ \* Version: +${VERSION}\$" rachnix-checkout-fields.php || { echo "Plugin header Version is not ${VERSION}" >&2; exit 1; }
+          grep -q "public const VERSION = '${VERSION}';" src/Plugin.php || { echo "Plugin::VERSION is not ${VERSION}" >&2; exit 1; }
+          grep -Eq "^Stable tag: ${VERSION}\$" readme.txt || { echo "readme.txt Stable tag is not ${VERSION}" >&2; exit 1; }
+          grep -q "^= ${VERSION} =\$" readme.txt || { echo "readme.txt has no changelog entry for ${VERSION}" >&2; exit 1; }
+      - run: npm ci
+      - run: npm run build
+      - name: Build the zip from the shipped files
+        run: |
+          bash bin/build-dist.sh --zip
+          mv dist/rachnix-checkout-fields.zip "dist/rachnix-checkout-fields-${VERSION}.zip"
+          ( cd dist && sha256sum "rachnix-checkout-fields-${VERSION}.zip" > "rachnix-checkout-fields-${VERSION}.zip.sha256" )
+      - name: Zip contains no development files
+        run: |
+          LIST=$(unzip -Z1 "dist/rachnix-checkout-fields-${VERSION}.zip")
+          if echo "${LIST}" | grep -E '(^|/)(tests|node_modules|vendor|assets/src|docs|\.github)/|\.map$|composer\.(json|lock)$|package(-lock)?\.json$'; then
+            echo "Development files found in the zip (listed above)." >&2
+            exit 1
+          fi
+          echo "${LIST}" | grep -q '^rachnix-checkout-fields/assets/build/index.js$'
+          echo "${LIST}" | grep -q '^rachnix-checkout-fields/uninstall.php$'
+      - name: Publish the GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          PRERELEASE=""
+          case "${VERSION}" in *-*) PRERELEASE="--prerelease" ;; esac
+          gh release create "${GITHUB_REF_NAME}" \
+            "dist/rachnix-checkout-fields-${VERSION}.zip" \
+            "dist/rachnix-checkout-fields-${VERSION}.zip.sha256" \
+            --title "${VERSION}" --generate-notes ${PRERELEASE}

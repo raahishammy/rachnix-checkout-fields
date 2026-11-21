@@ -95,6 +95,21 @@ final class ToolsController extends AbstractController {
 		);
 		register_rest_route(
 			$this->route_namespace(),
+			'/uninstall',
+			array(
+				'methods'             => WP_REST_Server::CREATABLE,
+				'callback'            => array( $this, 'update_uninstall' ),
+				'permission_callback' => $permission,
+				'args'                => array(
+					'delete_data' => array(
+						'type'     => 'boolean',
+						'required' => true,
+					),
+				),
+			)
+		);
+		register_rest_route(
+			$this->route_namespace(),
 			'/wizard/complete',
 			array(
 				'methods'             => WP_REST_Server::CREATABLE,
@@ -155,6 +170,22 @@ final class ToolsController extends AbstractController {
 		}
 		$this->settings->reset_style( get_current_user_id() );
 		return new \WP_REST_Response( array( 'deleted' => $deleted ) );
+	}
+
+	/**
+	 * Turns "delete all data when the plugin is deleted" on or off. Only users who may
+	 * delete plugins can change it, because it decides what deleting the plugin removes.
+	 *
+	 * @param \WP_REST_Request $request Request.
+	 * @phpstan-param \WP_REST_Request<array<string, mixed>> $request
+	 * @return \WP_REST_Response|\WP_Error
+	 */
+	public function update_uninstall( \WP_REST_Request $request ) {
+		if ( ! current_user_can( 'delete_plugins' ) ) {
+			return new \WP_Error( 'rxcf_forbidden', __( 'Only users who can delete plugins can change this setting.', 'rachnix-checkout-fields' ), array( 'status' => 403 ) );
+		}
+		$this->settings->update_delete_data_on_uninstall( true === $request->get_param( 'delete_data' ), get_current_user_id() );
+		return new \WP_REST_Response( array( 'delete_data' => $this->settings->delete_data_on_uninstall() ) );
 	}
 
 	public function complete_wizard(): \WP_REST_Response {

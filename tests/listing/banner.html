@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Banner</title>
+<!--
+	WordPress.org banner, rendered by tests/e2e/listing.spec.ts at 1544x500 (banner-1544x500.png)
+	and 772x250 (banner-772x250.png). Placeholder art until the final Rachnix branding exists.
+-->
+<style>
+	* { box-sizing: border-box; margin: 0; }
+	html, body { width: 1544px; height: 500px; overflow: hidden; }
+	body {
+		font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", "Liberation Sans", Arial, sans-serif;
+		background:
+			radial-gradient(circle at 85% 20%, rgba(255, 255, 255, 0.16), transparent 40%),
+			linear-gradient(120deg, #1d2b6b 0%, #3858e9 60%, #5b7cfa 100%);
+		color: #fff;
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		padding: 0 110px;
+	}
+	.text { max-width: 760px; }
+	.brand { font-size: 30px; font-weight: 600; letter-spacing: 0.04em; opacity: 0.85; text-transform: uppercase; }
+	h1 { margin-top: 14px; font-size: 68px; line-height: 1.05; font-weight: 700; }
+	.tagline { margin-top: 26px; font-size: 32px; opacity: 0.92; }
+	.card {
+		width: 470px;
+		padding: 34px 36px;
+		border-radius: 18px;
+		background: #fff;
+		color: #1e1e1e;
+		box-shadow: 0 30px 60px rgba(10, 20, 70, 0.35);
+	}
+	.row { margin-bottom: 20px; }
+	.row:last-child { margin-bottom: 0; }
+	.label { font-size: 17px; font-weight: 600; margin-bottom: 8px; }
+	.input { height: 46px; border: 2px solid #dcdcde; border-radius: 8px; padding: 0 14px; display: flex; align-items: center; font-size: 17px; color: #50575e; }
+	.is-new .input { border-color: #3858e9; box-shadow: 0 0 0 3px rgba(56, 88, 233, 0.18); color: #1e1e1e; }
+	.is-new .label::after { content: "New"; margin-left: 10px; padding: 2px 9px; border-radius: 999px; background: #e6f4ea; color: #1e6b34; font-size: 13px; vertical-align: 2px; }
+	.half { display: flex; gap: 14px; }
+	.half .row { flex: 1; }
+</style>
+</head>
+<body>
+	<div class="text">
+		<div class="brand">Rachnix</div>
+		<h1>Checkout Field Editor for WooCommerce</h1>
+		<p class="tagline">Every field type. Both checkouts. Zero bloat.</p>
+	</div>
+	<div class="card" aria-hidden="true">
+		<div class="half">
+			<div class="row"><div class="label">First name</div><div class="input">Anne</div></div>
+			<div class="row"><div class="label">Last name</div><div class="input">O'Neil</div></div>
+		</div>
+		<div class="row is-new"><div class="label">Delivery date</div><div class="input">24 December</div></div>
+		<div class="row is-new"><div class="label">Gift message</div><div class="input">Happy holidays!</div></div>
+	</div>
+</body>
+</html>

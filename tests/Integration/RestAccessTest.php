@@ -53,6 +53,8 @@ final class RestAccessTest extends IntegrationTestCase {
 		'GET /rxcf/v1/export'                       => array(),
 		'POST /rxcf/v1/import'                      => array( 'file' => array( 'format' => 'rachnix-checkout-fields' ) ),
 		'POST /rxcf/v1/reset-all'                   => array( 'confirm' => true ),
+		'POST /rxcf/v1/uninstall'                   => array( 'delete_data' => false ),
+		'GET /rxcf/v1/system-info'                  => array(),
 		'POST /rxcf/v1/wizard/complete'             => array(),
 	);
 

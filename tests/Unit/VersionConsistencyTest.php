@@ -40,4 +40,20 @@ final class VersionConsistencyTest extends TestCase {
 	public function test_text_domain_matches_slug(): void {
 		$this->assertSame( 'rachnix-checkout-fields', self::$header['Text Domain'] ?? null );
 	}
+
+	public function test_readme_matches_the_plugin_header(): void {
+		$readme = (string) file_get_contents( dirname( __DIR__, 2 ) . '/readme.txt' );
+		$head   = strstr( $readme, '== Description ==', true );
+		preg_match_all( '/^([A-Za-z ]+):\s*(.+)$/m', false === $head ? $readme : $head, $matches, PREG_SET_ORDER );
+		$fields = array();
+		foreach ( $matches as $match ) {
+			$fields[ trim( $match[1] ) ] = trim( $match[2] );
+		}
+
+		$this->assertSame( Plugin::VERSION, $fields['Stable tag'] ?? null );
+		$this->assertSame( self::$header['Requires PHP'] ?? null, $fields['Requires PHP'] ?? null );
+		$this->assertSame( self::$header['Requires at least'] ?? null, $fields['Requires at least'] ?? null );
+		$this->assertSame( self::$header['License'] ?? null, $fields['License'] ?? null );
+		$this->assertStringContainsString( '= ' . Plugin::VERSION . ' =', $readme, 'The changelog has an entry for this version.' );
+	}
 }

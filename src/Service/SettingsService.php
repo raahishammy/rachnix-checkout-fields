@@ -164,6 +164,23 @@ final class SettingsService {
 		$this->settings->complete_wizard();
 	}
 
+	public function delete_data_on_uninstall(): bool {
+		return $this->settings->delete_data_on_uninstall();
+	}
+
+	/**
+	 * @param bool $enabled Remove tables and settings when the plugin is deleted.
+	 * @param int  $user_id Acting user.
+	 */
+	public function update_delete_data_on_uninstall( bool $enabled, int $user_id ): void {
+		$current = $this->settings->delete_data_on_uninstall();
+		if ( $current === $enabled ) {
+			return;
+		}
+		$this->settings->save_delete_data_on_uninstall( $enabled );
+		$this->audit->record( AuditAction::Update, 'settings', 'uninstall', array( 'delete_data' => $current ), array( 'delete_data' => $enabled ), $user_id );
+	}
+
 	/**
 	 * "#abc" becomes "#aabbcc"; output is lowercase.
 	 *

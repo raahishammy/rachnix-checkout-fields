@@ -91,3 +91,37 @@ test( 'an export imports cleanly after resetting everything', async ( { page } )
 	await page.getByRole( 'tab', { name: 'Tools' } ).click();
 	await resetAll();
 } );
+
+test( '"Delete all data when the plugin is deleted" is off by default and is saved', async ( { page } ) => {
+	await logInAsAdmin( page, store, ADMIN );
+	await page.getByRole( 'tab', { name: 'Tools' } ).click();
+
+	const toggle = page.getByRole( 'checkbox', { name: 'Delete all data when the plugin is deleted' } );
+	await expect( toggle ).not.toBeChecked();
+	await toggle.check();
+	await expect( toggle ).toBeEnabled(); // Saved: the toggle is disabled while the request runs.
+
+	await page.reload( { waitUntil: 'domcontentloaded' } );
+	await page.getByRole( 'tab', { name: 'Tools' } ).click();
+	await expect( toggle ).toBeChecked();
+
+	// Back to the default, so nothing in wp-env depends on this test.
+	await toggle.uncheck();
+	await expect( toggle ).toBeEnabled();
+	await page.reload( { waitUntil: 'domcontentloaded' } );
+	await page.getByRole( 'tab', { name: 'Tools' } ).click();
+	await expect( toggle ).not.toBeChecked();
+} );
+
+test( 'system info is shown for bug reports, without the site address', async ( { page } ) => {
+	await logInAsAdmin( page, store, ADMIN );
+	await page.getByRole( 'tab', { name: 'Tools' } ).click();
+	await page.getByRole( 'button', { name: 'Show system info' } ).click();
+
+	const info = page.getByRole( 'textbox', { name: 'System info' } );
+	await expect( info ).toHaveValue( /Version: \d+\.\d+\.\d+/ );
+	await expect( info ).toHaveValue( /Checkout: Classic \(shortcode\)/ );
+	await expect( info ).toHaveValue( /WooCommerce: \d+\.\d+/ );
+	const text = await info.inputValue();
+	expect( text ).not.toContain( new URL( store.home_url ).host );
+} );

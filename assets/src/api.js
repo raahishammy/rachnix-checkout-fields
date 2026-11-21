@@ -39,6 +39,18 @@ export const resetAll = () =>
 		data: { confirm: true },
 	} );
 
+/**
+ * @param {boolean} deleteData Remove tables and settings when the plugin is deleted.
+ */
+export const saveUninstall = ( deleteData ) =>
+	apiFetch( {
+		path: path( '/uninstall' ),
+		method: 'POST',
+		data: { delete_data: deleteData },
+	} );
+
+export const getSystemInfo = () => apiFetch( { path: path( '/system-info' ) } );
+
 export const completeWizard = () =>
 	apiFetch( { path: path( '/wizard/complete' ), method: 'POST' } );
 
