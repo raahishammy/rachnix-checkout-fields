@@ -68,7 +68,7 @@ async function layoutProblems( page: Page ): Promise< string[] > {
 			// Partly visible but running past the edge. (A control pushed wholly off-screen by a
 			// real break makes the page scroll sideways, which the first check reports.)
 			if ( c.box.left < -1 || c.box.right > width + 1 ) {
-				problems.push( `${ c.name } is cut off at the screen edge` );
+				problems.push( `${ c.name } is cut off at the screen edge (spans ${ Math.round( c.box.left ) }px to ${ Math.round( c.box.right ) }px in a ${ width }px window)` );
 			}
 			if ( c.textLike && c.box.width < 60 ) {
 				problems.push( `${ c.name } is only ${ Math.round( c.box.width ) }px wide` );
@@ -85,6 +85,18 @@ async function layoutProblems( page: Page ): Promise< string[] > {
 					problems.push( `${ controls[ i ].name } overlaps ${ controls[ j ].name }` );
 				}
 			}
+		}
+		if ( problems.length ) {
+			// Diagnosis: the outermost element wider than the window, and how the page clips it.
+			const wide = Array.from( document.querySelectorAll< HTMLElement >( 'body *' ) ).find( ( el ) => {
+				const box = el.getBoundingClientRect();
+				return box.right > width + 1 && box.width > 0;
+			} );
+			const describe = ( el: Element | null ) => ( el ? `${ el.tagName.toLowerCase() }${ el.id ? '#' + el.id : '' }.${ Array.from( el.classList ).join( '.' ) }` : 'none' );
+			problems.push(
+				`diagnosis: first element past the edge is ${ describe( wide ?? null ) } (${ wide ? Math.round( wide.getBoundingClientRect().width ) : 0 }px wide, parent ${ describe( wide?.parentElement ?? null ) }); ` +
+					`html overflow-x ${ getComputedStyle( document.documentElement ).overflowX }, body overflow-x ${ getComputedStyle( document.body ).overflowX }`
+			);
 		}
 		return problems;
 	} );
