@@ -302,6 +302,126 @@ final class FieldService {
 	}
 
 	/**
+	 * "Publish changes": applies a list of operations in one transaction, in order. The first
+	 * invalid operation rolls everything back; its errors are reported as "operations.{index}.{param}".
+	 *
+	 * Operations:
+	 * - create:  { op, field: {...definition, optional uuid} }
+	 * - update:  { op, uuid, changes: {...} }
+	 * - delete:  { op, uuid }
+	 * - core:    { op, section, key, changes: {...} }   (edit, hide or move a WooCommerce field)
+	 * - reorder: { op, section, order: [uuid, ...] }
+	 *
+	 * @param list<mixed> $operations Operations.
+	 * @param int         $user_id    Acting user.
+	 * @throws InvalidFieldInput When an operation is not acceptable (nothing is saved).
+	 * @throws DatabaseError     When the database fails (nothing is saved).
+	 */
+	public function apply_batch( array $operations, int $user_id ): void {
+		$this->fields->transaction( fn() => $this->apply_operations( $operations, $user_id ) );
+	}
+
+	/**
+	 * The fields as they would be after `apply_batch( $operations )`, without saving anything:
+	 * the operations run in a transaction that is always rolled back. Same validation as publishing.
+	 *
+	 * @param list<mixed> $operations Operations.
+	 * @param int         $user_id    Acting user.
+	 * @throws InvalidFieldInput When an operation is not acceptable.
+	 * @throws DatabaseError     When the database fails.
+	 */
+	public function preview( array $operations, int $user_id ): FieldCollection {
+		return $this->fields->transaction(
+			function () use ( $operations, $user_id ): FieldCollection {
+				$this->apply_operations( $operations, $user_id );
+				return $this->fields->all();
+			},
+			commit: false
+		);
+	}
+
+	/**
+	 * @param list<mixed> $operations Operations.
+	 * @param int         $user_id    Acting user.
+	 * @throws InvalidFieldInput When an operation is not acceptable.
+	 */
+	private function apply_operations( array $operations, int $user_id ): void {
+		foreach ( array_values( $operations ) as $index => $operation ) {
+			try {
+				$this->apply_operation( $operation, $user_id );
+			} catch ( InvalidFieldInput $e ) {
+				$prefixed = array();
+				foreach ( $e->errors() as $param => $message ) {
+					$prefixed[ "operations.{$index}.{$param}" ] = $message;
+				}
+				throw InvalidFieldInput::with( $prefixed ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- returned as REST JSON, never printed.
+			} catch ( FieldNotFound ) {
+				throw InvalidFieldInput::with( array( "operations.{$index}.uuid" => __( 'This field no longer exists. Reload the page to see the latest fields.', 'rachnix-checkout-fields' ) ) ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- returned as REST JSON, never printed.
+			}
+		}
+	}
+
+	/**
+	 * @param mixed $operation One operation.
+	 * @param int   $user_id   Acting user.
+	 * @throws InvalidFieldInput When the operation is malformed or not acceptable.
+	 * @throws FieldNotFound     When it names a field that does not exist.
+	 */
+	private function apply_operation( mixed $operation, int $user_id ): void {
+		if ( ! is_array( $operation ) ) {
+			throw InvalidFieldInput::with( array( 'op' => __( 'Unknown change.', 'rachnix-checkout-fields' ) ) ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- returned as REST JSON, never printed.
+		}
+		$changes = is_array( $operation['changes'] ?? null ) ? $operation['changes'] : array();
+
+		match ( $operation['op'] ?? null ) {
+			'create'  => $this->create( is_array( $operation['field'] ?? null ) ? $operation['field'] : array(), $user_id ),
+			'update'  => $this->update( self::string( $operation['uuid'] ?? '' ), $changes, $user_id ),
+			'delete'  => $this->delete( self::string( $operation['uuid'] ?? '' ), $user_id ),
+			'core'    => $this->customize_core( $this->section_or_fail( $operation['section'] ?? null ), self::string( $operation['key'] ?? '' ), $changes, $user_id ),
+			'reorder' => $this->reorder(
+				$this->section_or_fail( $operation['section'] ?? null ),
+				is_array( $operation['order'] ?? null ) ? array_values( array_map( array( self::class, 'string' ), $operation['order'] ) ) : array(),
+				$user_id
+			),
+			default   => throw InvalidFieldInput::with( array( 'op' => __( 'Unknown change.', 'rachnix-checkout-fields' ) ) ), // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- returned as REST JSON, never printed.
+		};
+	}
+
+	/**
+	 * @param mixed $value Submitted section.
+	 * @throws InvalidFieldInput When it is not a section.
+	 */
+	private function section_or_fail( mixed $value ): SectionKey {
+		try {
+			return SectionKey::from_string( self::string( $value ) );
+		} catch ( InvalidFieldDefinition ) {
+			throw InvalidFieldInput::with( array( 'section' => __( 'Choose a checkout section.', 'rachnix-checkout-fields' ) ) ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- returned as REST JSON, never printed.
+		}
+	}
+
+	/**
+	 * A UUID for a new field: the client's (so a batch can create a field and reorder it in
+	 * one go), or a fresh one when none is given.
+	 *
+	 * @param mixed                 $requested Client-chosen UUID.
+	 * @param array<string, string> $errors    Collected errors.
+	 */
+	private function new_uuid( mixed $requested, array &$errors ): string {
+		if ( null === $requested || '' === $requested ) {
+			return wp_generate_uuid4();
+		}
+		$uuid = self::string( $requested );
+		if ( 1 !== preg_match( Patterns::UUID, $uuid ) ) {
+			$errors['uuid'] = __( 'Invalid field id.', 'rachnix-checkout-fields' );
+			return wp_generate_uuid4();
+		}
+		if ( null !== $this->fields->find( $uuid ) ) {
+			$errors['uuid'] = __( 'A field with this id already exists.', 'rachnix-checkout-fields' );
+		}
+		return $uuid;
+	}
+
+	/**
 	 * @param array<string, mixed> $data     Merged definition.
 	 * @param Field|null           $existing Current field when updating.
 	 * @param int                  $user_id  Acting user.
@@ -322,6 +442,8 @@ final class FieldService {
 		if ( null === $type ) {
 			$errors['type'] = __( 'Choose a field type.', 'rachnix-checkout-fields' );
 		}
+
+		$uuid = $existing->uuid ?? $this->new_uuid( $data['uuid'] ?? null, $errors );
 
 		$key = self::string( $data['key'] ?? '' );
 		$this->check_key( $key, $existing, $errors );
@@ -349,7 +471,7 @@ final class FieldService {
 
 		try {
 			return new Field(
-				uuid: $existing->uuid ?? wp_generate_uuid4(),
+				uuid: $uuid,
 				section: $section ?? throw new \LogicException( 'Unreachable: section errors are reported above.' ),
 				key: $key,
 				type: $type_slug,

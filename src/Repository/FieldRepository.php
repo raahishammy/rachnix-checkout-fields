@@ -35,6 +35,12 @@ final class FieldRepository implements FieldRepositoryInterface {
 
 	private ?FieldCollection $loaded = null;
 
+	/** Open transactions. While one is open, reads skip the cache and never write it. */
+	private int $transaction_depth = 0;
+
+	/** Draft fields shown instead of the stored ones for this request only (preview). */
+	private ?FieldCollection $preview = null;
+
 	/**
 	 * @param \wpdb      $db     Database.
 	 * @param TableNames $tables Table names.
@@ -53,17 +59,24 @@ final class FieldRepository implements FieldRepositoryInterface {
 	 * so the checkout falls back to WooCommerce's defaults instead of breaking.
 	 */
 	public function all(): FieldCollection {
+		if ( null !== $this->preview && 0 === $this->transaction_depth ) {
+			return $this->preview;
+		}
 		if ( null !== $this->loaded ) {
 			return $this->loaded;
 		}
 
-		$rows = $this->cache->get();
+		$in_transaction = $this->transaction_depth > 0;
+		$rows           = $in_transaction ? null : $this->cache->get();
 		if ( null === $rows ) {
 			$rows = $this->fetch_rows();
 			if ( null === $rows ) {
 				return new FieldCollection();
 			}
-			$this->cache->set( $rows );
+			if ( ! $in_transaction ) {
+				// Never cache uncommitted rows: a persistent object cache is not rolled back.
+				$this->cache->set( $rows );
+			}
 		}
 
 		$fields = array();
@@ -134,6 +147,49 @@ final class FieldRepository implements FieldRepositoryInterface {
 		}
 		$this->invalidate();
 		return $result > 0;
+	}
+
+	/**
+	 * Our tables and the audit log are InnoDB, so the whole batch commits or rolls back.
+	 * Caches are cleared on both outcomes, because the object cache is not transactional.
+	 *
+	 * @template T
+	 * @param callable(): T $work   Changes to apply.
+	 * @param bool          $commit False to roll back even on success (dry run).
+	 * @return T
+	 * @throws \Throwable Whatever `$work` threw, after rolling back.
+	 */
+	public function transaction( callable $work, bool $commit = true ): mixed {
+		if ( $this->transaction_depth > 0 ) {
+			if ( ! $commit ) {
+				throw new \LogicException( 'A dry run cannot be nested inside another transaction.' );
+			}
+			return $work(); // Already inside one: MySQL does not nest transactions.
+		}
+
+		$this->db->query( 'START TRANSACTION' );
+		++$this->transaction_depth;
+		$this->loaded = null;
+		try {
+			$result = $work();
+			$this->db->query( $commit ? 'COMMIT' : 'ROLLBACK' );
+			return $result;
+		} catch ( \Throwable $e ) {
+			$this->db->query( 'ROLLBACK' );
+			throw $e;
+		} finally {
+			--$this->transaction_depth;
+			$this->invalidate();
+		}
+	}
+
+	/**
+	 * Shows draft fields instead of the stored ones, for the rest of this request (preview).
+	 *
+	 * @param FieldCollection $fields Draft fields.
+	 */
+	public function show_preview( FieldCollection $fields ): void {
+		$this->preview = $fields;
 	}
 
 	/**

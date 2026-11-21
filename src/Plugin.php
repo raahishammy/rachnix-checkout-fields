@@ -9,7 +9,11 @@ declare(strict_types=1);
 
 namespace Rachnix\CheckoutFields;
 
+use Rachnix\CheckoutFields\Admin\AdminPage;
 use Rachnix\CheckoutFields\Admin\BlockCheckoutNotice;
+use Rachnix\CheckoutFields\Checkout\PreviewMode;
+use Rachnix\CheckoutFields\Rest\PublishController;
+use Rachnix\CheckoutFields\Service\PreviewService;
 use Rachnix\CheckoutFields\Checkout\Blocks\BlockFieldSupport;
 use Rachnix\CheckoutFields\Checkout\Blocks\BlocksCheckoutIntegration;
 use Rachnix\CheckoutFields\Checkout\CheckoutDetector;
@@ -138,7 +142,7 @@ final class Plugin {
 		);
 
 		$c->set(
-			FieldRepositoryInterface::class,
+			FieldRepository::class,
 			static fn( Container $c ) => new FieldRepository(
 				self::wpdb(),
 				$c->get( TableNames::class ),
@@ -146,6 +150,8 @@ final class Plugin {
 				$c->get( Logger::class )
 			)
 		);
+		// Same shared instance, so a preview shown through it reaches every reader.
+		$c->set( FieldRepositoryInterface::class, static fn( Container $c ) => $c->get( FieldRepository::class ) );
 
 		$c->set( RequestContext::class, static fn() => new RequestContext() );
 		$c->set(
@@ -168,6 +174,10 @@ final class Plugin {
 				$c->get( CoreFieldCatalogInterface::class )
 			)
 		);
+
+		$c->set( PreviewService::class, static fn( Container $c ) => new PreviewService( $c->get( FieldService::class ) ) );
+		$c->set( PreviewMode::class, static fn( Container $c ) => new PreviewMode( $c->get( PreviewService::class ), $c->get( FieldRepository::class ) ) );
+		$c->set( AdminPage::class, fn( Container $c ) => new AdminPage( $this->plugin_file, $c->get( CheckoutDetector::class ), $c->get( BlockFieldSupport::class ) ) );
 
 		$c->set( SettingsRepository::class, static fn() => new SettingsRepository() );
 		$c->set( SettingsService::class, static fn( Container $c ) => new SettingsService( $c->get( SettingsRepository::class ), $c->get( AuditLogRepository::class ) ) );
@@ -224,6 +234,7 @@ final class Plugin {
 					new SectionsController( $c->get( FieldService::class ), $c->get( Logger::class ) ),
 					new CoreFieldsController( $c->get( FieldService::class ), $c->get( Logger::class ) ),
 					new SettingsController( $c->get( SettingsService::class ), $c->get( Logger::class ) ),
+					new PublishController( $c->get( FieldService::class ), $c->get( PreviewService::class ), $c->get( Logger::class ) ),
 				)
 			)
 		);
@@ -246,6 +257,8 @@ final class Plugin {
 			$this->container->get( BlocksCheckoutIntegration::class ),
 			$this->container->get( BlockCheckoutNotice::class ),
 			$this->container->get( CheckoutStyles::class ),
+			$this->container->get( PreviewMode::class ),
+			$this->container->get( AdminPage::class ),
 		);
 	}
 

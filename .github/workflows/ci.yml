@@ -180,3 +180,20 @@ jobs:
             test-results/themes/
             test-results/**/*.png
           retention-days: 14
+
+  js:
+    name: JavaScript (lint, build, audit)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      - run: npm run lint:js
+      - run: npm run build
+      - name: Build produced the admin app
+        run: test -f assets/build/index.js && test -f assets/build/index.asset.php
+      # Only bundled packages ship to stores; development tools are not audited here.
+      - run: npm audit --omit=dev --audit-level=high

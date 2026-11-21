@@ -1,0 +1,12 @@
+// Admin screen styles. Colours come from the user's admin colour scheme.
+.rxcf-admin {
+	max-width: 1400px;
+
+	&__section {
+		margin-block-end: 1.5em;
+	}
+
+	code {
+		color: var(--wp-admin-theme-color, #3858e9);
+	}
+}

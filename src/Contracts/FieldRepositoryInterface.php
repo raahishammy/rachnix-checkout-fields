@@ -45,4 +45,17 @@ interface FieldRepositoryInterface {
 	 * @throws DatabaseError When the delete fails.
 	 */
 	public function delete( string $uuid ): bool;
+
+	/**
+	 * Runs `$work` in one database transaction: every change in it is kept, or none is.
+	 * Any exception rolls back and is rethrown. With `$commit` false the transaction is
+	 * always rolled back after `$work` returns (a dry run, used for previews).
+	 *
+	 * @template T
+	 * @param callable(): T $work   Changes to apply.
+	 * @param bool          $commit False to roll back even on success.
+	 * @return T
+	 * @throws \Throwable Whatever `$work` threw, after rolling back.
+	 */
+	public function transaction( callable $work, bool $commit = true ): mixed;
 }
