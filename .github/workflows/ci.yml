@@ -281,14 +281,20 @@ jobs:
           jq -r '.site[].alerts[] | "\(.riskdesc)  \(.alert)  (\(.count) found)"' report_json.json
           echo
           echo "High-risk alerts, every instance (accepted ones are listed in tests/zap/accepted-alerts.json):"
-          jq -r --slurpfile ok tests/zap/accepted-alerts.json '
-            ($ok[0].accepted | map(.alert)) as $accepted
-            | .site[].alerts[] | select(.riskcode == "3")
-            | "== \(.alert) (plugin \(.pluginid))\(if (.alert | IN($accepted[])) then " ACCEPTED" else "" end)",
-              (.instances[] | "  \(.method) \(.uri)\n    param    \(.param)\n    attack   \(.attack)\n    evidence \(.evidence)\n    other    \(.otherinfo // "" | gsub("\n"; " "))")
+          # An instance is accepted when an entry names its alert and either lists no params or lists its param.
+          FILTER='def accepted($acc; $name; $param): any($acc[]; .alert == $name and ((has("params") | not) or any(.params[]; . == $param)));'
+          jq -r --slurpfile ok tests/zap/accepted-alerts.json "${FILTER}"'
+            $ok[0].accepted as $acc
+            | .site[].alerts[] | select(.riskcode == "3") | .alert as $name
+            | "== \($name) (plugin \(.pluginid))",
+              (.instances[] | "  \(if accepted($acc; $name; .param) then "ACCEPTED " else "" end)\(.method) \(.uri)\n    param    \(.param)\n    attack   \(.attack)\n    evidence \(.evidence)\n    other    \(.otherinfo // "" | gsub("\n"; " "))")
           ' report_json.json
-          HIGH=$(jq --slurpfile ok tests/zap/accepted-alerts.json '($ok[0].accepted | map(.alert)) as $accepted | [.site[].alerts[] | select(.riskcode == "3") | select((.alert | IN($accepted[])) | not)] | length' report_json.json)
-          echo "High-risk alerts not accepted: ${HIGH}"
+          HIGH=$(jq --slurpfile ok tests/zap/accepted-alerts.json "${FILTER}"'
+            $ok[0].accepted as $acc
+            | [ .site[].alerts[] | select(.riskcode == "3") | .alert as $name | .instances[] | select(accepted($acc; $name; .param) | not) ]
+            | length
+          ' report_json.json)
+          echo "High-risk instances not accepted: ${HIGH}"
           test "${HIGH}" = "0"
 
   js:

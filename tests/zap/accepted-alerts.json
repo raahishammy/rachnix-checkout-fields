@@ -1,9 +1,14 @@
 {
-	"_comment": "ZAP alerts the CI gate does not fail on. Only alerts about the test server itself belong here, each with the reason. Never add an alert about a request our plugin handles.",
+	"_comment": "ZAP alerts the CI gate does not fail on, each with the reason. Only alerts about the test server, WordPress or WooCommerce belong here, never one about a request our plugin handles. With \"params\", only instances on those parameters are accepted; the same alert on any other parameter still fails.",
 	"accepted": [
 		{
 			"alert": "PHP Version with Known Vulnerabilities",
 			"reason": "About wp-env's PHP build (read from X-Powered-By), not our code. Stores run the PHP their host provides; we support 8.2 and later."
+		},
+		{
+			"alert": "SQL Injection",
+			"params": [ "password", "rememberme" ],
+			"reason": "WooCommerce's My account login form. The values go to wp_signon(): the password is only compared with a hash and rememberme is only checked for being set, so neither reaches SQL. ZAP's boolean test sees failed logins differ (new nonce, error text). Our plugin does not handle this form."
 		}
 	]
 }
