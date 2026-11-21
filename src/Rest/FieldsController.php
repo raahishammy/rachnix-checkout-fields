@@ -9,6 +9,7 @@ declare(strict_types=1);
 
 namespace Rachnix\CheckoutFields\Rest;
 
+use Rachnix\CheckoutFields\Checkout\Blocks\BlockFieldSupport;
 use Rachnix\CheckoutFields\Contracts\FieldTypeInterface;
 use Rachnix\CheckoutFields\Domain\Field;
 use Rachnix\CheckoutFields\Domain\SectionKey;
@@ -37,14 +38,16 @@ final class FieldsController extends AbstractController {
 	/**
 	 * @param FieldService      $service   Field changes.
 	 * @param FieldTypeRegistry $types     Field types.
-	 * @param PatternLibrary    $patterns  Curated patterns.
-	 * @param Logger            $logger    Error log.
+	 * @param PatternLibrary    $patterns        Curated patterns.
+	 * @param BlockFieldSupport $block_support   Which types the block checkout shows.
+	 * @param Logger            $logger          Error log.
 	 * @param string            $route_namespace Route namespace.
 	 */
 	public function __construct(
 		private readonly FieldService $service,
 		private readonly FieldTypeRegistry $types,
 		private readonly PatternLibrary $patterns,
+		private readonly BlockFieldSupport $block_support,
 		Logger $logger,
 		string $route_namespace = self::NAMESPACE,
 	) {
@@ -253,7 +256,7 @@ final class FieldsController extends AbstractController {
 	 */
 	public function get_types(): \WP_REST_Response {
 		$types = array_map(
-			static fn( FieldTypeInterface $type ): array => array(
+			fn( FieldTypeInterface $type ): array => array(
 				'slug'                 => $type->slug(),
 				'label'                => $type->label(),
 				'description'          => $type->description(),
@@ -263,6 +266,7 @@ final class FieldsController extends AbstractController {
 				'can_be_required'      => $type->can_be_required(),
 				'allowed_rules'        => array_map( static fn( ValidationRuleType $rule ): string => $rule->value, $type->allowed_rules() ),
 				'max_length'           => $type->max_length(),
+				'block_checkout'       => $this->block_support->is_shown( $type->slug() ),
 			),
 			$this->types->all()
 		);

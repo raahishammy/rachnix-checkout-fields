@@ -9,6 +9,10 @@ declare(strict_types=1);
 
 namespace Rachnix\CheckoutFields;
 
+use Rachnix\CheckoutFields\Admin\BlockCheckoutNotice;
+use Rachnix\CheckoutFields\Checkout\Blocks\BlockFieldSupport;
+use Rachnix\CheckoutFields\Checkout\Blocks\BlocksCheckoutIntegration;
+use Rachnix\CheckoutFields\Checkout\CheckoutDetector;
 use Rachnix\CheckoutFields\Checkout\Classic\ClassicCheckoutIntegration;
 use Rachnix\CheckoutFields\Checkout\OrderDataWriter;
 use Rachnix\CheckoutFields\Checkout\WooCoreFieldCatalog;
@@ -162,6 +166,29 @@ final class Plugin {
 		);
 
 		$c->set( OrderDataWriter::class, static fn() => new OrderDataWriter() );
+		$c->set( CheckoutDetector::class, static fn() => new CheckoutDetector() );
+		$c->set( BlockFieldSupport::class, static fn() => new BlockFieldSupport() );
+		$c->set(
+			BlocksCheckoutIntegration::class,
+			static fn( Container $c ) => new BlocksCheckoutIntegration(
+				$c->get( FieldRepositoryInterface::class ),
+				$c->get( FieldTypeRegistry::class ),
+				$c->get( BlockFieldSupport::class ),
+				$c->get( CheckoutDetector::class ),
+				$c->get( Sanitizer::class ),
+				$c->get( ValidationService::class ),
+				$c->get( Logger::class )
+			)
+		);
+		$c->set(
+			BlockCheckoutNotice::class,
+			static fn( Container $c ) => new BlockCheckoutNotice(
+				$c->get( FieldRepositoryInterface::class ),
+				$c->get( FieldTypeRegistry::class ),
+				$c->get( BlockFieldSupport::class ),
+				$c->get( CheckoutDetector::class )
+			)
+		);
 		$c->set(
 			ClassicCheckoutIntegration::class,
 			static fn( Container $c ) => new ClassicCheckoutIntegration(
@@ -183,6 +210,7 @@ final class Plugin {
 						$c->get( FieldService::class ),
 						$c->get( FieldTypeRegistry::class ),
 						$c->get( PatternLibrary::class ),
+						$c->get( BlockFieldSupport::class ),
 						$c->get( Logger::class )
 					),
 					new SectionsController( $c->get( FieldService::class ), $c->get( Logger::class ) ),
@@ -205,6 +233,9 @@ final class Plugin {
 			$this->container->get( RestRoutes::class ),
 			// Hooks only; field definitions are read when WooCommerce builds the checkout.
 			$this->container->get( ClassicCheckoutIntegration::class ),
+			$this->container->get( CheckoutDetector::class ),
+			$this->container->get( BlocksCheckoutIntegration::class ),
+			$this->container->get( BlockCheckoutNotice::class ),
 		);
 	}
 

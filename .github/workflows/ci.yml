@@ -114,7 +114,7 @@ jobs:
           npx @wordpress/env@10 run cli bash -c 'test ! -f wp-content/debug.log || ! grep -i "rachnix-checkout-fields" wp-content/debug.log'
 
   e2e:
-    name: E2E classic checkout (Playwright)
+    name: E2E checkout, classic and block (Playwright)
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5

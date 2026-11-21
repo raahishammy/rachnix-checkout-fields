@@ -3,31 +3,14 @@
  * Runs against wp-env (see .github/workflows/ci.yml, job "e2e").
  */
 import { test, expect, type Page } from '@playwright/test';
-import { execFileSync } from 'node:child_process';
-
-const PLUGIN = 'wp-content/plugins/rachnix-checkout-fields';
-
-type Store = { product_id: number; home_url: string; checkout_url: string };
-
-/** Runs a PHP script inside wp-env and returns its `RXCF_E2E {json}` result line. */
-function wpEvalFile<T>( file: string, ...args: string[] ): T {
-	const output = execFileSync( 'npx', [ 'wp-env', 'run', 'cli', 'wp', 'eval-file', `${ PLUGIN }/${ file }`, ...args ], {
-		encoding: 'utf8',
-		shell: process.platform === 'win32',
-	} );
-	const line = output.split( /\r?\n/ ).find( ( l ) => l.startsWith( 'RXCF_E2E ' ) );
-	if ( ! line ) {
-		throw new Error( `No result from ${ file }:\n${ output }` );
-	}
-	return JSON.parse( line.slice( 'RXCF_E2E '.length ) ) as T;
-}
+import { wpEvalFile, type Store } from './helpers';
 
 let store: Store;
 
 test.describe.configure( { mode: 'serial' } );
 
 test.beforeAll( () => {
-	store = wpEvalFile<Store>( 'tests/e2e/setup.php' );
+	store = wpEvalFile<Store>( 'tests/e2e/setup.php', 'classic' );
 } );
 
 async function openCheckout( page: Page ) {

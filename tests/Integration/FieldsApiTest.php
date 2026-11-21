@@ -7,6 +7,7 @@ declare(strict_types=1);
 
 namespace Rachnix\CheckoutFields\Tests\Integration;
 
+use Rachnix\CheckoutFields\Checkout\Blocks\BlockFieldSupport;
 use Rachnix\CheckoutFields\Checkout\WooCoreFieldCatalog;
 use Rachnix\CheckoutFields\FieldTypes\FieldTypeRegistry;
 use Rachnix\CheckoutFields\Rest\CoreFieldsController;
@@ -65,7 +66,7 @@ final class FieldsApiTest extends IntegrationTestCase {
 			new WooCoreFieldCatalog()
 		);
 		$controllers = array(
-			new FieldsController( $service, $registry, $patterns, $logger, 'rxcftest/v1' ),
+			new FieldsController( $service, $registry, $patterns, new BlockFieldSupport( date_supported: false ), $logger, 'rxcftest/v1' ),
 			new SectionsController( $service, $logger, 'rxcftest/v1' ),
 			new CoreFieldsController( $service, $logger, 'rxcftest/v1' ),
 		);
@@ -263,6 +264,10 @@ final class FieldsApiTest extends IntegrationTestCase {
 
 		$meta = $this->call( 'GET', '/field-types' )->get_data();
 		$this->assertCount( 11, $meta['types'] );
+		$on_blocks = array_column( $meta['types'], 'block_checkout', 'slug' );
+		$this->assertTrue( $on_blocks['email'] );
+		$this->assertFalse( $on_blocks['textarea'] );
+		$this->assertFalse( $on_blocks['date'], 'This test pins date support off.' );
 		$this->assertContains( 'pin_in', array_column( $meta['patterns'], 'id' ) );
 	}
 

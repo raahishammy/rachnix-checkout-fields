@@ -1,7 +1,9 @@
 <?php
 /**
- * Prepares the wp-env store for the end-to-end tests: `wp eval-file tests/e2e/setup.php`.
+ * Prepares the wp-env store for the end-to-end tests:
+ * `wp eval-file tests/e2e/setup.php [classic|blocks]` (the checkout page to use).
  * Safe to run repeatedly. Prints one result line: `RXCF_E2E {json}`.
+ * Resets every section and changes store options: wp-env only, never a real store.
  *
  * No declare(strict_types=1): `wp eval-file` runs this file through eval().
  *
@@ -46,18 +48,35 @@ update_option(
 	)
 );
 
-// A classic (shortcode) checkout page, used as the store's checkout.
-$rxcf_page    = get_page_by_path( 'classic-checkout' );
+// Which checkout to test: `wp eval-file setup.php classic` (default) or `... blocks`.
+$rxcf_mode = 'blocks' === ( $args[0] ?? 'classic' ) ? 'blocks' : 'classic'; // phpcs:ignore WordPress.WP.GlobalVariablesOverride.Prohibited -- $args is set by wp eval-file.
+
+if ( 'blocks' === $rxcf_mode ) {
+	// WooCommerce's own Checkout block page content (the same markup it installs).
+	$rxcf_content = '<!-- wp:woocommerce/checkout /-->';
+	if ( method_exists( 'WC_Install', 'get_checkout_block_content' ) ) {
+		$rxcf_content = ( new ReflectionMethod( 'WC_Install', 'get_checkout_block_content' ) )->invoke( null );
+	}
+	$rxcf_slug  = 'block-checkout';
+	$rxcf_title = 'Block checkout';
+} else {
+	$rxcf_content = '[woocommerce_checkout]';
+	$rxcf_slug    = 'classic-checkout';
+	$rxcf_title   = 'Classic checkout';
+}
+
+$rxcf_page    = get_page_by_path( $rxcf_slug );
 $rxcf_page_id = $rxcf_page instanceof WP_Post ? $rxcf_page->ID : wp_insert_post(
 	array(
 		'post_type'    => 'page',
 		'post_status'  => 'publish',
-		'post_title'   => 'Classic checkout',
-		'post_name'    => 'classic-checkout',
-		'post_content' => '[woocommerce_checkout]',
+		'post_title'   => $rxcf_title,
+		'post_name'    => $rxcf_slug,
+		'post_content' => $rxcf_content,
 	)
 );
 update_option( 'woocommerce_checkout_page_id', $rxcf_page_id );
+delete_transient( 'rxcf_uses_block_checkout' ); // The plugin re-detects the checkout on the next request.
 
 // A virtual product, so no shipping method is needed.
 $rxcf_products = wc_get_products(
@@ -169,8 +188,11 @@ foreach ( array(
 
 echo 'RXCF_E2E ' . wp_json_encode(
 	array(
-		'product_id'   => (int) $rxcf_products[0],
-		'home_url'     => home_url( '/' ),
-		'checkout_url' => get_permalink( $rxcf_page_id ),
+		'product_id'     => (int) $rxcf_products[0],
+		'home_url'       => home_url( '/' ),
+		'checkout_url'   => get_permalink( $rxcf_page_id ),
+		'mode'           => $rxcf_mode,
+		// The block checkout supports date fields from WooCommerce 11.2.
+		'date_supported' => class_exists( 'Automattic\WooCommerce\Blocks\Domain\Services\CheckoutFieldTypes\DateFieldType' ),
 	)
 ) . PHP_EOL;

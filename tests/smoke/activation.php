@@ -32,6 +32,14 @@ foreach ( array( 'custom_order_tables', 'cart_checkout_blocks' ) as $rxcf_featur
 	}
 }
 
+// The block checkout integration relies on these in every supported WooCommerce version.
+if ( ! function_exists( 'woocommerce_register_additional_checkout_field' ) ) {
+	$rxcf_failures[] = 'woocommerce_register_additional_checkout_field() is missing.';
+}
+if ( ! method_exists( 'Automattic\WooCommerce\Blocks\Utils\CartCheckoutUtils', 'is_checkout_block_default' ) ) {
+	$rxcf_failures[] = 'CartCheckoutUtils::is_checkout_block_default() is missing.';
+}
+
 if ( (int) get_option( 'rxcf_db_version', 0 ) < 1 ) {
 	$rxcf_failures[] = 'Database schema was not migrated (rxcf_db_version < 1).';
 }
