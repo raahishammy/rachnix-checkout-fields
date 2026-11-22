@@ -69,7 +69,9 @@ export default function Tools() {
 	};
 
 	const onCopySystemInfo = async () => {
-		const box = document.getElementById( 'rxcf-system-info' );
+		const box = document.querySelector(
+			'.rxcf-tools__system-info textarea'
+		);
 		try {
 			await window.navigator.clipboard.writeText( systemInfo );
 		} catch {
@@ -328,7 +330,6 @@ export default function Tools() {
 					<>
 						<TextareaControl
 							__nextHasNoMarginBottom
-							id="rxcf-system-info"
 							className="rxcf-tools__system-info"
 							label={ __(
 								'System info',
