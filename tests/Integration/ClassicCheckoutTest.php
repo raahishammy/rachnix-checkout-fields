@@ -176,6 +176,34 @@ final class ClassicCheckoutTest extends IntegrationTestCase {
 		}
 	}
 
+	public function test_radio_options_do_not_repeat_optional_or_required(): void {
+		add_filter( 'woocommerce_form_field_radio', array( $this->integration, 'tidy_radio_options' ), 10, 2 );
+		try {
+			foreach ( array( false, true ) as $required ) {
+				$args   = array(
+					'type'     => 'radio',
+					'label'    => 'Wrapping',
+					'required' => $required,
+					'options'  => array(
+						'paper' => 'Paper',
+						'box'   => 'Box',
+					),
+					'return'   => true,
+				);
+				$ours   = (string) woocommerce_form_field( 'rxcf_wrap', $args );
+				$theirs = (string) woocommerce_form_field( 'other_plugin_wrap', $args );
+				$marker = $required ? 'class="required"' : 'class="optional"';
+
+				$this->assertMatchesRegularExpression( '#class="radio\b[^"]*"[^>]*>Paper</label>#', $ours );
+				$this->assertMatchesRegularExpression( '#class="radio\b[^"]*"[^>]*>Box</label>#', $ours );
+				$this->assertSame( 1, substr_count( $ours, $marker ), 'Only the field label keeps the marker.' );
+				$this->assertSame( 3, substr_count( $theirs, $marker ), 'Fields of other plugins are left alone.' );
+			}
+		} finally {
+			remove_filter( 'woocommerce_form_field_radio', array( $this->integration, 'tidy_radio_options' ), 10 );
+		}
+	}
+
 	public function test_validation_adds_format_errors_but_leaves_required_to_woocommerce(): void {
 		$this->save( 'billing', 'floor', 'number', label: 'Floor', settings: new FieldSettings( validation: array( new ValidationRule( ValidationRuleType::NumberRange, 0.0, 10.0 ) ) ) );
 		$this->save( 'billing', 'alt_email', 'email', label: 'Other email' );

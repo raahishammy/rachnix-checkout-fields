@@ -17,7 +17,8 @@ const THEME = process.env.RXCF_LISTING_THEME ?? 'storefront';
 
 test.skip( ! process.env.RXCF_LISTING, 'Set RXCF_LISTING to make the listing assets.' );
 test.describe.configure( { mode: 'serial' } );
-test.use( { viewport: { width: 1440, height: 900 } } );
+// Reduced motion: WordPress components skip their open animations, so nothing is caught half-faded.
+test.use( { viewport: { width: 1440, height: 900 }, reducedMotion: 'reduce' } );
 
 const file = ( name: string ) => join( OUT, name );
 
@@ -69,6 +70,7 @@ test( 'screenshots of the editor, type picker, panel, Style and Tools', async ( 
 	await page.getByRole( 'button', { name: 'Add field' } ).click();
 	const picker = page.getByRole( 'dialog' );
 	await expect( picker ).toBeVisible();
+	await page.waitForTimeout( 600 ); // The modal fades in; wait until it is fully opaque.
 	await page.screenshot( { path: file( 'screenshot-2.png' ) } );
 	await page.keyboard.press( 'Escape' );
 	await expect( picker ).toHaveCount( 0 );
@@ -76,6 +78,9 @@ test( 'screenshots of the editor, type picker, panel, Style and Tools', async ( 
 	// 3. A field's settings.
 	await page.locator( '.rxcf-fields__open', { hasText: 'VAT number' } ).click();
 	await expect( page.getByRole( 'textbox', { name: 'Label' } ) ).toHaveValue( 'VAT number' );
+	// Selecting a field low in the list scrolls the page; show the panel from its top.
+	await page.evaluate( () => window.scrollTo( 0, 0 ) );
+	await page.waitForTimeout( 300 );
 	await page.screenshot( { path: file( 'screenshot-3.png' ) } );
 
 	// 6. The Style tab, with Custom chosen so its controls show (not saved).
@@ -103,12 +108,17 @@ test( 'screenshots of both checkouts', async ( { page } ) => {
 
 	// 5. Checkout block.
 	store = prepare( 'blocks' );
+	await page.context().clearCookies(); // A fresh cart: one bag, not the classic run's too.
 	await page.goto( `${ store.home_url }?add-to-cart=${ store.product_id }` );
 	await page.goto( store.checkout_url );
 	const block = page.locator( '[data-block-name="woocommerce/checkout"]' );
 	await expect( block ).toBeVisible();
 	await expect( page.getByLabel( 'Email address' ) ).toBeVisible();
 	await expect( block.getByText( 'VAT number' ).first() ).toBeVisible();
+	// Wait until the payment methods and the order summary have replaced their loading placeholders.
+	await expect( block.getByText( 'Cash on delivery' ).first() ).toBeVisible();
+	await expect( block.getByText( 'Linen tote bag' ).first() ).toBeVisible();
+	await expect( block.locator( '[class*="skeleton"]' ) ).toHaveCount( 0 );
 	await page.waitForTimeout( 1000 );
 	await block.screenshot( { path: file( 'screenshot-5.png' ) } );
 } );

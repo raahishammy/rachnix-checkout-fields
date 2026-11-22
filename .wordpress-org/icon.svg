@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="256" height="256">
+	<!-- WordPress.org plugin icon (icon.svg; tests/e2e/listing.spec.ts also renders it to icon-128x128.png and icon-256x256.png). Placeholder art until the final Rachnix branding exists. -->
+	<title>Rachnix Checkout Field Editor</title>
+	<defs>
+		<linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+			<stop offset="0" stop-color="#1d2b6b"/>
+			<stop offset="1" stop-color="#3858e9"/>
+		</linearGradient>
+	</defs>
+	<rect width="256" height="256" rx="56" fill="url(#bg)"/>
+	<!-- Three form fields; the last one is new. -->
+	<rect x="48" y="58" width="160" height="34" rx="9" fill="#ffffff" opacity="0.92"/>
+	<rect x="48" y="111" width="160" height="34" rx="9" fill="#ffffff" opacity="0.92"/>
+	<rect x="48" y="164" width="112" height="34" rx="9" fill="none" stroke="#ffffff" stroke-width="6" stroke-dasharray="14 9"/>
+	<circle cx="196" cy="181" r="26" fill="#ffffff"/>
+	<path d="M196 168v26M183 181h26" stroke="#3858e9" stroke-width="7" stroke-linecap="round"/>
+</svg>

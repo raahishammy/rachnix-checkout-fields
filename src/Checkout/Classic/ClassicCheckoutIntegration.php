@@ -86,6 +86,28 @@ final class ClassicCheckoutIntegration implements Hookable {
 		add_filter( 'woocommerce_checkout_fields', array( $this, 'filter_fields' ), 20 );
 		add_action( 'woocommerce_after_checkout_validation', array( $this, 'validate' ), 10, 2 );
 		add_action( 'woocommerce_checkout_create_order', array( $this, 'save' ), 10, 2 );
+		add_filter( 'woocommerce_form_field_radio', array( $this, 'tidy_radio_options' ), 10, 2 );
+	}
+
+	/**
+	 * WooCommerce adds "(optional)" or "*" to every radio option's label, not just the
+	 * field label ("Paper (optional)", "Box (optional)"), and screen readers read it per
+	 * option. For our radio fields, keep it on the field label only.
+	 *
+	 * @param mixed $html Field HTML from woocommerce_form_field().
+	 * @param mixed $key  Field key.
+	 * @return mixed
+	 */
+	public function tidy_radio_options( mixed $html, mixed $key ): mixed {
+		if ( ! is_string( $html ) || ! is_string( $key ) || ! str_starts_with( $key, self::INPUT_PREFIX ) ) {
+			return $html;
+		}
+		$tidied = preg_replace(
+			'#(<label\b[^>]*\bclass="radio\b[^"]*"[^>]*>[^<]*?)(?:&nbsp;)?<span class="(?:optional|required)"[^>]*>[^<]*</span>(</label>)#',
+			'$1$2',
+			$html
+		);
+		return null === $tidied ? $html : $tidied;
 	}
 
 	/**
