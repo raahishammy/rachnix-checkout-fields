@@ -38,14 +38,29 @@ test.beforeAll( () => {
 	mkdirSync( OUT, { recursive: true } );
 } );
 
+/** Waits for the preview's checkout form; on failure, says what the frame showed instead. */
+async function waitForPreview( page: Page ) {
+	const frame = page.frameLocator( '.rxcf-preview__frame' );
+	try {
+		await expect( frame.locator( 'form.checkout' ) ).toBeVisible( { timeout: 60_000 } );
+	} catch ( error ) {
+		const src = await page.locator( '.rxcf-preview__frame' ).getAttribute( 'src' ).catch( () => null );
+		const shown = await frame.locator( 'body' ).innerText( { timeout: 2_000 } ).catch( () => '(no frame body)' );
+		const notices = await page.locator( '.rxcf-preview .components-notice' ).allInnerTexts();
+		throw new Error( `Preview did not show the checkout.\nFrame src: ${ src }\nPreview notices: ${ notices.join( ' | ' ) || 'none' }\nFrame text: ${ shown.slice( 0, 800 ) }\n${ String( error ) }` );
+	}
+	return frame;
+}
+
 test( 'screenshots of the editor, type picker, panel, Style and Tools', async ( { page } ) => {
 	const store = prepare( 'classic' );
+	// A product in the cart: the preview then shows a real order summary.
+	await page.goto( `${ store.home_url }?add-to-cart=${ store.product_id }` );
 	await openEditor( page, store );
 
 	// 1. The editor with the live preview.
 	await page.getByRole( 'button', { name: /^Billing/ } ).click();
-	const frame = page.frameLocator( '.rxcf-preview__frame' );
-	await expect( frame.locator( 'form.checkout' ) ).toBeVisible();
+	const frame = await waitForPreview( page );
 	await expect( frame.getByText( 'VAT number' ).first() ).toBeVisible();
 	await page.waitForTimeout( 1000 ); // Let the theme's fonts and the preview settle.
 	await page.screenshot( { path: file( 'screenshot-1.png' ) } );
