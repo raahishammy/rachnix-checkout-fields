@@ -7,8 +7,8 @@
 		},
 		{
 			"alert": "SQL Injection",
-			"params": [ "password", "rememberme" ],
-			"reason": "WooCommerce's My account login form. The values go to wp_signon(): the password is only compared with a hash and rememberme is only checked for being set, so neither reaches SQL. ZAP's boolean test sees failed logins differ (new nonce, error text). Our plugin does not handle this form."
+			"params": [ "password", "rememberme", "user_login", "amp;embed" ],
+			"reason": "WooCommerce's My account page and its forms; our plugin handles none of them. password and rememberme (login form) go to wp_signon(): the password is only compared with a hash and rememberme is only checked for being set. user_login (Lost password form, ?lost-password) goes to retrieve_password(), which looks the user up with get_user_by() through prepared queries. amp;embed is not a real parameter: ZAP read the oEmbed link's '&amp;embed=true' literally, and WordPress ignores unknown query vars. ZAP's boolean test only sees the responses differ: a new nonce on every page and different error messages."
 		}
 	]
 }
