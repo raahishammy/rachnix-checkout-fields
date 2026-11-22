@@ -82,12 +82,16 @@ export default function Tools() {
 
 	const onDeleteData = async ( enabled ) => {
 		setNotice( null );
+		// Flip at once so the switch answers the click; flip back if saving fails.
+		const previous = deleteData;
+		setDeleteData( enabled );
 		setSavingDelete( true );
 		try {
 			const result = await api.saveUninstall( enabled );
 			setDeleteData( Boolean( result.delete_data ) );
 			config.deleteDataOnUninstall = Boolean( result.delete_data );
 		} catch ( problem ) {
+			setDeleteData( previous );
 			setNotice( { status: 'error', text: errorText( problem ) } );
 		}
 		setSavingDelete( false );
